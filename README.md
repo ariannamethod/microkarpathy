@@ -6,7 +6,7 @@ microKarpathy is an atomic Python script which takes (for educational purposes) 
 
 no dependencies. no internet. no autoregressive generation. ain't no conscience either.
 
-Named after Andrej Karpathy, whose [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95) proved that "everything else is just efficiency." We prove that everything — including weights — is just efficiency.
+named after Andrej Karpathy, whose [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95) proved that "everything else is just efficiency, so it's time to prove that everything at all is just efficiency. kinda little bonus until death makes life what this scrypt makes with your prompts.
 
 ---
 
