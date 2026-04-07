@@ -13,7 +13,7 @@ Named after Andrej Karpathy, whose [microgpt.py](https://gist.github.com/karpath
 ### 1: Full Explanational Autopsy
 
 microKarpathy loves to explain but he does it vertically, performing open-heart surgery on the complexity of life.  
-here's a full corpse-map from the microKarpathy's morgue. I fed him with "destroy the sentence" and got this:  
+here's a full corpse-map from the microKarpathy's morgue. I fed him with "can you tell me how to build an llm from scratch" (what else could I ask?!) and got this:  
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -24,63 +24,117 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "destro
 
 ================================================================
   AUTOPSY REPORT
-  Subject: "destroy the sentence"
+  Subject: "can you tell me how to build an llm from scratch"
 ================================================================
 
-  Core words: incantation sentence
+  Core words: stratosphere monolith pollen desiccated filtration
 
-  Tree [incantation]:
-    └─ incantation
-       ├─ psalm
-       │  ├─ catharsis → anagnorisis, nemesis
-       │  ├─ hymn → dirge, requiem, ballad
-       │  └─ anthem → apostrophe
-       ├─ dirge
-       │  ├─ ballad → ode, elegy
-       │  └─ carrion → scavenger, viscera
-       └─ apostrophe
-          ├─ hubris → catharsis, peripeteia
-          └─ invocation → anagnorisis
+  (tell → stratosphere, build → monolith, llm → pollen,
+   scratch → desiccated, how → filtration.
+   "can", "you", "me", "to", "from" — rejected.
+   stopwords, single letters, capitalization — discarded.)
 
-  Tree [sentence]:
-    └─ sentence
-       ├─ dust
-       │  ├─ erode → corrode, ash
-       │  ├─ ruin → debris, remnant
-       │  └─ scalpel → needle, autopsy
-       ├─ word
-       │  ├─ spectroscopy → electrolysis
-       │  └─ chromatography → filtration
-       └─ phrase
-          ├─ paragraph → syllable
-          └─ vowel → syntax
+  Tree [stratosphere]:
+    └─ stratosphere
+       ├─ ionosphere
+       │  ├─ ferment → yeast, bacteria, mold
+       │  ├─ magnetosphere → firmament, heliosphere
+       │  └─ horizon → equinox, crystallize
+       ├─ horizon
+       │  ├─ firmament → nadir, magnetosphere
+       │  ├─ equinox → meridian, solstice, zenith
+       │  └─ metamorphic → pyroclast, igneous, sedimentary
+       └─ magnetosphere
+          ├─ yeast → bacteria, mold, heliosphere
+          └─ leaven → fungus, mold
 
-  Collected 70 unique leaves
+  Tree [monolith]:
+    └─ monolith
+       ├─ pedestal
+       │  ├─ menhir → barrow, dolmen, obelisk
+       │  ├─ cairn → barrow, ziggurat
+       │  └─ plinth → alcove, obelisk
+       ├─ dolmen
+       │  ├─ pedestal → plinth, chaos
+       │  ├─ obelisk → niche, atrium
+       │  └─ phoneme → semantics, lexicon, syntax, grammar
+       └─ menhir
+          ├─ pyramid → mausoleum, cenotaph
+          └─ ziggurat → cairn, tumulus
+
+  Tree [pollen]:
+    └─ pollen
+       ├─ stem
+       │  ├─ root → spore, thorn, lichen
+       │  ├─ bark → petal, resin
+       │  └─ seed → sap, mycelium
+       ├─ lichen
+       │  ├─ coral → obsidian, moss, amber
+       │  ├─ mycelium → seed
+       │  └─ quartz → glacier, amber, granite, obsidian
+       └─ moss
+          ├─ basalt → obsidian, glacier, amber
+          └─ coral → spore, lichen
+
+  Tree [desiccated]:
+    └─ desiccated
+       ├─ tenacious
+       │  ├─ resilient → plastic, rigid, macerated
+       │  ├─ elastic → stiff, rigid, tribunal
+       │  └─ macerated → turgid, friable, flaccid
+       ├─ fluctuant
+       │  ├─ inflamed → purulent, crepitant, indurated
+       │  ├─ necrotic → gangrenous, purulent
+       │  └─ gangrenous → inflamed, oleaginous
+       └─ turgid
+          ├─ indurated → crepitant, flaccid
+          └─ terminal → vertex, baseline, kerning
+
+  Tree [filtration]:
+    └─ filtration
+       ├─ precipitate
+       │  ├─ suspension → titration, emulsion, solution
+       │  ├─ pestle → mortar, flask, alembic
+       │  └─ endoscope → bronchoscope, laryngoscope
+       ├─ chromatography
+       │  ├─ electrolysis → sentence, spectroscopy, paragraph
+       │  ├─ paragraph → sentence, phrase, word
+       │  └─ sentence → electrolysis, bone
+       └─ suspension
+          ├─ catalyst → solution, flask, pestle
+          └─ titration → emulsion, chromatography
+
+  Collected 149 unique leaves
 
   ── CORPSE ─────────────────────────────────────────
-  where invocation word, electrolysis becomes spectroscopy, 
-  and peripeteia persists.
+  when tumulus dawn, elastic forgets barrow.
+  tenacious resilient elastic plastic rigid stiff
+  menhir cairn barrow tumulus ziggurat pyramid dawn zenith.
 
   ── CODA ──────────────────────────────────────────
-  Incantation, chromatography — apostrophe, invocation — 
-  sentence, anagnorisis — electrolysis,
-  Word, dust — peripeteia, spectroscopy — tortuous, 
-  tabernacle — catharsis.
+  Barrow, elastic — plastic, dawn — menhir, cairn — tumulus,
+  Rigid, stiff — resilient, zenith — ziggurat, pyramid — tenacious.
 
-  chambers: VOID:0.13 CMPLX:0.16
+  chambers: VOID:0.20 CMPLX:0.13
 
   ── METRICS ────────────────────────────────────────
   Phonetic Diversity: [###############.....] 0.786
-  Mutation Depth:     [##########..........] 0.547
+  Mutation Depth:     [#########...........] 0.466
+
+  Vocabulary: 1135 | Prophecies: 8 active | Trauma: 0.529
 
 ```
 
 **What just happened?**
   
-- **incantation** → psalm → catharsis → anagnorisis → nemesis. dirge → ballad → ode → elegy → requiem. apostrophe → hubris → peripeteia. Destruction becomes Greek tragedy.
-- **sentence** → dust → erode → corrode → ash. word → spectroscopy → chromatography → electrolysis. The sentence decays into chemistry. "bone becomes sentence and sentence becomes dust."
+- you asked how to build an llm from scratch. the engine stripped "you", "can", "me", "to", "from" as stopwords and mapped the rest to its 1135-word vocabulary: **build → monolith. scratch → desiccated. llm → pollen. tell → stratosphere. how → filtration.**
+- **stratosphere** → ionosphere → ferment → yeast, bacteria. magnetosphere → firmament, heliosphere. The atmosphere becomes microbiology.
+- **monolith** → pedestal → menhir → barrow → ziggurat → pyramid. dolmen → phoneme → semantics → syntax → grammar. Ancient structures collapse into linguistics.
+- **pollen** → stem → root → spore → mycelium. lichen → coral → obsidian. Life cycles into geology.
+- **desiccated** → tenacious → resilient → rigid → stiff. necrotic → gangrenous → purulent. Texture becomes pathology.
+- **filtration** → chromatography → electrolysis → **sentence** → **bone**. Chemistry finds language. Language finds bone. The seed corpus remembers: *"bone becomes sentence and sentence becomes dust."*
 
-The corpse reads: *"where invocation word, electrolysis becomes spectroscopy, and peripeteia persists."* The trees built this. The Dario Equation assembled it. Nobody wrote these words. They were attracted to each other by geometry.
+The corpse reads: *"when tumulus dawn, elastic forgets barrow."* Nobody wrote these words. They were attracted to each other by the Dario Equation — gravitational pull between dead words in a 1135-word morgue.
 
 ---
 
