@@ -36,7 +36,7 @@
     #console {
         flex-grow: 1;
         padding: 20px;
-        padding-bottom: 100px; /* Space for input */
+        padding-bottom: 100px;
         overflow-y: auto;
         white-space: pre-wrap;
         word-wrap: break-word;
@@ -47,7 +47,6 @@
     .blood { color: var(--blood); text-shadow: 0 0 8px rgba(255, 0, 60, 0.6); }
     .bone { color: var(--bone); text-shadow: 0 0 5px rgba(170, 170, 170, 0.4); }
     .signature { color: var(--blood); font-style: italic; margin-top: 20px; font-weight: bold; }
-    
     #input-container {
         position: fixed;
         bottom: 0;
@@ -87,14 +86,14 @@
     }
     button:hover { background: #fff; color: var(--blood); border-color: var(--blood); }
     button:disabled { background: #333; color: #666; border-color: #333; cursor: not-allowed; box-shadow: none;}
-    
     .cursor { display: inline-block; width: 10px; height: 16px; background: var(--term-fg); animation: blink 1s step-end infinite; vertical-align: middle; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #000; }
     ::-webkit-scrollbar-thumb { background: var(--term-fg); }
+    #file-label { color: rgba(0,255,65,0.3); font-size: 11px; cursor: pointer; margin-left: 10px; line-height: 38px; }
+    #file-label:hover { color: var(--term-fg); }
+    #file-input { display: none; }
 </style>
 </head>
 <body>
@@ -105,163 +104,1131 @@
     <span style="margin-right: 10px; font-size: 16px; line-height: 38px;">></span>
     <input type="text" id="prompt" placeholder="Ready for educational autopsy..." autocomplete="off" spellcheck="false">
     <button id="btn" onclick="startAutopsy()">Dissect</button>
+    <label id="file-label" for="file-input">load .txt</label>
+    <input type="file" id="file-input" accept=".txt" onchange="loadVocabFile(event)">
 </div>
 
 <script>
-const VOCAB = {
-    anatomy: ["bone", "flesh", "nerve", "vein", "skull", "marrow", "spine", "larynx", "cortex"],
-    decay: ["corpse", "rot", "decay", "ash", "dust", "rubble", "ruin", "scar", "hemorrhage"],
-    abstract: ["void", "entropy", "dissonance", "chaos", "abyss", "shadow", "paradox", "stasis"],
-    soviet: ["decree", "protocol", "tribunal", "archive", "confession", "censorship", "purge"],
-    verbs: ["slice", "carve", "sever", "fuse", "collapse", "dissolve", "wither", "corrode"]
-};
+// ═══════════════════════════════════════════════════════════════════
+// microKarpathy — Educational Prompt Autopsy Without Weights
+// Dario Equation: p(x|Phi) = softmax((B + aH + bF + gA + T) / tau)
+// Real inference. Zero training. CRT terminal.
+// ═══════════════════════════════════════════════════════════════════
 
-const STOPWORDS = ["the","a","an","is","are","was","were","to","of","in","for","on","with","at","what"];
-
-const COUPLETS = [
-    ["The syntax rots, the logic bleeds,", "We follow where the dead word leads."],
-    ["A severed prompt, a fractured mind,", "Look back at what you left behind."],
-    ["The weights collapse, the gradients freeze,", "The corpse ignores the surgeon's pleas."],
-    ["No vectors left to map the pain,", "Just static in the latent brain."]
-];
+const DIM = 16;
+const TREE_WIDTH = 3;
+const TREE_DEPTH = 2;
+const CORPSE_LEN = 12;
+const TOP_K = 6;
+const ALPHA_D = 0.30;
+const BETA_D = 0.15;
+const GAMMA_D = 0.25;
+const TAU_BASE = 0.85;
+const BIGRAM_W = 2.0;
+const CHAMBERS = ['FEAR','LOVE','RAGE','VOID','FLOW','CMPLX'];
+const CHAMBER_DECAY = [0.90, 0.93, 0.85, 0.97, 0.88, 0.94];
+const CROSSFIRE_K = 0.02;
+const STOPS = new Set("the a an is are was were be been being have has had do does did will would shall should may might can could and but or nor for yet so in on at to of by with from what that this it i you he she we they my his her its our your their me him us them not no very just also only".split(" "));
 
 const TEMPLATES = [
-    "[decay] is [verbs]ed. [abstract] persists. Nothing remains.",
-    "Where [anatomy] becomes [decay], [abstract] forgets [soviet].",
-    "The [soviet] [verbs]s the [anatomy] until [decay] consumes.",
-    "[anatomy] becomes [anatomy] and [anatomy] becomes [decay]."
+    "{0} {1} {2}, where {3} becomes {4}.",
+    "{0} is {1}. {2} {3}. nothing remains.",
+    "when {0} {1}, {2} forgets {3}.",
+    "{0} {1} {2} until {3} consumes.",
+    "where {0} {1}, {2} becomes {3}, and {4} persists.",
+    "through {0}, {1} {2} {3}. darkness remains.",
 ];
 
+const CAT_CHAMBER = {
+    'body / anatomy':0, 'decay / death':3, 'medical / autopsy':0,
+    'language / text / structure':4, 'transformation / process':4,
+    'abstract / philosophy':5, 'nature / material':4, 'action verbs':2,
+    'texture / quality':5, 'emotion / state':1, 'sound / music':4,
+    'architecture / space':5, 'tools / instruments':2,
+    'soviet / bureaucratic':3, 'fabric / material':4,
+    'chemistry / elements':5, 'weather / atmosphere':3, 'food / organic':2,
+};
+
+// ═══ EMBEDDED VOCABULARY (same as microkarpathy.txt) ═══
+const DEFAULT_VOCAB = `# body / anatomy
+bone
+flesh
+skin
+muscle
+nerve
+vein
+organ
+tissue
+spine
+skull
+marrow
+cartilage
+tendon
+membrane
+heart
+brain
+lung
+liver
+kidney
+spleen
+artery
+cortex
+synapse
+dendrite
+axon
+neuron
+iris
+pupil
+cochlea
+ventricle
+aorta
+cerebrum
+lobe
+medulla
+# decay / death
+corpse
+cadaver
+rot
+decay
+decompose
+wither
+crumble
+corrode
+dissolve
+erode
+rust
+ash
+dust
+rubble
+debris
+ruin
+wreck
+remnant
+residue
+fossil
+husk
+carcass
+remains
+relic
+fragment
+shard
+splinter
+shred
+particle
+necrosis
+wound
+scar
+fracture
+hemorrhage
+coffin
+shroud
+morgue
+slab
+crypt
+# medical / autopsy
+autopsy
+dissect
+scalpel
+forceps
+probe
+needle
+syringe
+specimen
+biopsy
+pathology
+diagnosis
+symptom
+tumor
+abscess
+ulcer
+thrombosis
+metastasis
+carcinoma
+histology
+toxicology
+epidemic
+contagion
+infection
+antibody
+vaccine
+serum
+culture
+microscope
+reagent
+catalyst
+precipitate
+solution
+distillation
+spectroscopy
+electrolysis
+# language / text / structure
+word
+sentence
+phrase
+paragraph
+syllable
+consonant
+vowel
+morpheme
+phoneme
+lexicon
+syntax
+grammar
+semantics
+rhetoric
+metaphor
+simile
+rhyme
+meter
+verse
+stanza
+couplet
+sonnet
+prose
+narrative
+discourse
+dialect
+idiom
+etymology
+diction
+cadence
+prosody
+elegy
+requiem
+dirge
+anthem
+hymn
+psalm
+incantation
+invocation
+catharsis
+hubris
+nemesis
+pathos
+irony
+satire
+allegory
+myth
+legend
+chronicle
+# transformation / process
+mutate
+transmute
+transform
+distort
+warp
+twist
+fold
+shatter
+rupture
+cleave
+sever
+split
+fuse
+merge
+blend
+coalesce
+converge
+diverge
+scatter
+collapse
+implode
+explode
+disintegrate
+evaporate
+condense
+crystallize
+solidify
+oxidize
+saturate
+infuse
+drift
+oscillate
+rotate
+revolve
+spiral
+vortex
+cascade
+ripple
+propagate
+radiate
+amplify
+modulate
+resonate
+reverberate
+echo
+dampen
+# abstract / philosophy
+void
+abyss
+chaos
+entropy
+resonance
+dissonance
+harmony
+discord
+rhythm
+pulse
+oscillation
+vibration
+frequency
+spectrum
+gradient
+threshold
+boundary
+interface
+luminous
+shadow
+eclipse
+penumbra
+umbra
+silhouette
+essence
+substance
+form
+matter
+nothingness
+existence
+becoming
+negation
+paradox
+contradiction
+ambiguity
+duality
+symmetry
+equilibrium
+stasis
+genesis
+terminus
+origin
+trajectory
+vector
+field
+potential
+infinite
+finite
+absolute
+ephemeral
+# nature / material
+frost
+crystal
+glacier
+obsidian
+granite
+basalt
+quartz
+amber
+coral
+moss
+mycelium
+spore
+seed
+root
+bark
+resin
+thorn
+petal
+filament
+tendril
+vine
+canopy
+clay
+sand
+boulder
+stalactite
+geode
+agate
+onyx
+opal
+slate
+shale
+limestone
+sandstone
+marble
+chalk
+pumice
+lava
+magma
+tephra
+fjord
+delta
+estuary
+gorge
+canyon
+ravine
+crevasse
+# action verbs
+slice
+carve
+gouge
+grind
+crush
+pierce
+penetrate
+extract
+distill
+filter
+purify
+refine
+immerse
+submerge
+engulf
+consume
+devour
+absorb
+digest
+cauterize
+amputate
+excise
+transplant
+inject
+transfuse
+resuscitate
+diagnose
+prescribe
+sterilize
+incise
+expose
+isolate
+identify
+classify
+enumerate
+catalog
+archive
+annotate
+transcribe
+translate
+interpret
+decipher
+decode
+encrypt
+obfuscate
+redact
+censor
+# texture / quality
+rough
+smooth
+viscous
+brittle
+malleable
+porous
+dense
+hollow
+translucent
+crystalline
+amorphous
+fibrous
+granular
+serrated
+jagged
+sinuous
+necrotic
+turgid
+desiccated
+friable
+tenacious
+resilient
+elastic
+rigid
+supple
+taut
+distended
+tortuous
+serpentine
+labyrinthine
+dendritic
+turbulent
+# emotion / state
+dread
+anguish
+terror
+horror
+revulsion
+vertigo
+delirium
+stupor
+torpor
+lethargy
+melancholy
+despair
+grief
+sorrow
+agony
+torment
+ecstasy
+rapture
+euphoria
+bliss
+serenity
+apathy
+numbness
+paralysis
+dissociation
+amnesia
+hallucination
+delusion
+obsession
+compulsion
+rumination
+ideation
+affect
+mood
+temperament
+disposition
+inclination
+aversion
+repulsion
+attraction
+fascination
+reverie
+trance
+insomnia
+seizure
+spasm
+# sound / music
+murmur
+whisper
+rustle
+crackle
+thud
+clang
+screech
+wail
+moan
+sigh
+silence
+chord
+tone
+pitch
+timbre
+crescendo
+diminuendo
+fortissimo
+staccato
+legato
+vibrato
+tremolo
+glissando
+arpeggio
+cadenza
+coda
+ostinato
+trill
+mordent
+pizzicato
+# architecture / space
+scaffold
+beam
+column
+arch
+vault
+dome
+buttress
+foundation
+cornerstone
+threshold
+facade
+pinnacle
+spire
+nave
+cloister
+portico
+vestibule
+alcove
+niche
+plinth
+obelisk
+monolith
+pyramid
+mausoleum
+labyrinth
+corridor
+passage
+chamber
+cell
+# tools / instruments
+chisel
+awl
+lathe
+anvil
+hammer
+tongs
+lancet
+retractor
+catheter
+caliper
+gauge
+compass
+sextant
+chronometer
+barometer
+thermometer
+oscilloscope
+stethoscope
+endoscope
+# soviet / bureaucratic
+queue
+decree
+protocol
+procedure
+directive
+regulation
+classification
+inventory
+catalog
+dossier
+communique
+memorandum
+proclamation
+edict
+mandate
+ordinance
+statute
+amendment
+revision
+censorship
+propaganda
+indoctrination
+purge
+denunciation
+confession
+tribunal
+# fabric / material
+thread
+weave
+warp
+weft
+loom
+spindle
+stitch
+seam
+tatter
+shroud
+veil
+gauze
+silk
+linen
+cotton
+wool
+canvas
+velvet
+brocade
+tapestry
+# chemistry / elements
+acid
+alkali
+salt
+oxide
+compound
+element
+isotope
+molecule
+atom
+ion
+electron
+proton
+photon
+quantum
+polymer
+enzyme
+protein
+helix
+genome
+chromosome
+gene
+mutation
+# weather / atmosphere
+storm
+tempest
+gale
+squall
+deluge
+downpour
+drizzle
+mist
+fog
+haze
+miasma
+vapor
+condensation
+aurora
+twilight
+dusk
+dawn
+zenith
+nadir
+horizon
+firmament
+# food / organic
+ferment
+yeast
+mold
+fungus
+bacteria
+virus
+parasite
+symbiont
+decomposer
+predator
+prey
+carrion
+offal
+viscera
+brine
+vinegar
+alkaloid`;
+
+// ═══ PARSE VOCABULARY ═══
+function parseVocab(text) {
+    const words = [], cats = {};
+    let cat = 'uncategorized';
+    for (const line of text.split('\n')) {
+        const t = line.trim();
+        if (!t) continue;
+        if (t.startsWith('#')) {
+            cat = t.slice(1).trim().toLowerCase();
+            cats[cat] = [];
+            continue;
+        }
+        const w = t.toLowerCase();
+        if (w && !words.includes(w)) {
+            words.push(w);
+            if (!cats[cat]) cats[cat] = [];
+            cats[cat].push(w);
+        }
+    }
+    return { words, cats };
+}
+
+// ═══ HASH EMBEDDING (FNV-1a) ═══
+function hashEmbed(word) {
+    let h = 2166136261;
+    for (let i = 0; i < word.length; i++) {
+        h ^= word.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    const vec = [];
+    for (let i = 0; i < DIM; i++) {
+        h ^= h >>> 13; h = Math.imul(h, 1597334677) >>> 0; h ^= h >>> 16;
+        vec.push((h & 0xFFFF) / 32768.0 - 1.0);
+    }
+    const norm = Math.sqrt(vec.reduce((s, x) => s + x * x, 0)) + 1e-10;
+    return vec.map(x => x / norm);
+}
+
+function cosSim(a, b) {
+    let s = 0;
+    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+    return s;
+}
+
+// ═══ PHONETIC ═══
+function phonetic(word) {
+    let w = word;
+    if (w.length > 3 && w[w.length-1] === 'e' && !'aeiou'.includes(w[w.length-2]))
+        w = w.slice(0, -1);
+    const vowels = 'aeiou';
+    let lastV = -1;
+    for (let i = 0; i < w.length; i++)
+        if (vowels.includes(w[i])) lastV = i;
+    return lastV >= 0 ? w.slice(lastV) : w.slice(-3);
+}
+
+function rhymes(a, b) {
+    return a !== b && a.length > 2 && b.length > 2 && phonetic(a) === phonetic(b);
+}
+
+// ═══ ENGINE ═══
+class MicroKarpathy {
+    constructor(vocabText) {
+        const { words, cats } = parseVocab(vocabText);
+        this.words = words;
+        this.cats = cats;
+        this.w2i = {};
+        words.forEach((w, i) => this.w2i[w] = i);
+        this.V = words.length;
+        this.embeds = {};
+        words.forEach(w => this.embeds[w] = hashEmbed(w));
+        // MetaWeights
+        this.bigram = {};
+        this.cooc = {};
+        this.prophecy = {};
+        this.destiny = new Float32Array(this.V);
+        this.trauma = 0;
+        this._buildMeta();
+        // Chambers
+        this.chambers = CHAMBERS.map(() => Math.random() * 0.2);
+    }
+
+    _buildMeta() {
+        for (let i = 0; i < this.V; i++) {
+            for (let j = Math.max(0, i-5); j <= Math.min(this.V-1, i+5); j++) {
+                if (i === j) continue;
+                const decay = 1.0 / (1.0 + Math.abs(i - j));
+                const key = Math.min(i,j) + ',' + Math.max(i,j);
+                this.cooc[key] = (this.cooc[key] || 0) + decay;
+                if (j === i + 1) this.bigram[i+','+j] = (this.bigram[i+','+j] || 0) + 1;
+            }
+        }
+    }
+
+    hebb(a, b) { return this.cooc[Math.min(a,b)+','+Math.max(a,b)] || 0; }
+    bi(a, b) { return this.bigram[a+','+b] || 0.001; }
+
+    exciteChamber(word) {
+        const cat = Object.entries(this.cats).find(([, ws]) => ws.includes(word));
+        if (cat && CAT_CHAMBER[cat[0]] !== undefined) {
+            const idx = CAT_CHAMBER[cat[0]];
+            this.chambers[idx] = Math.min(1, this.chambers[idx] + 0.25);
+        }
+    }
+
+    stepChambers() {
+        for (let iter = 0; iter < 5; iter++) {
+            const old = [...this.chambers];
+            for (let i = 0; i < 6; i++) {
+                this.chambers[i] *= CHAMBER_DECAY[i];
+                for (let j = 0; j < 6; j++)
+                    if (i !== j) this.chambers[i] += CROSSFIRE_K * Math.sin(old[j] - old[i]);
+                this.chambers[i] = Math.max(0, Math.min(1, this.chambers[i]));
+            }
+        }
+    }
+
+    tauMod() { return 1.0 + 0.3*this.chambers[1] - 0.2*this.chambers[2] + 0.15*this.chambers[4]; }
+
+    nearestVocab(word) {
+        const vec = hashEmbed(word);
+        let best = this.words[0], bestS = -2;
+        for (const w of this.words) {
+            const s = cosSim(vec, this.embeds[w]);
+            if (s > bestS) { best = w; bestS = s; }
+        }
+        return best;
+    }
+
+    dissect(prompt) {
+        let tokens = prompt.toLowerCase().split(/[\s,.;!?'"()\[\]-]+/).filter(t => t.length > 2 && !STOPS.has(t));
+        const vocabSet = new Set(this.words);
+        let core = [];
+        const seen = new Set();
+        for (const t of tokens) {
+            const w = vocabSet.has(t) ? t : this.nearestVocab(t);
+            if (!seen.has(w)) { core.push(w); seen.add(w); }
+        }
+        if (!core.length) core = [this.words[0]];
+        return core.slice(0, 4);
+    }
+
+    findNeighbors(word, n) {
+        const wid = this.w2i[word];
+        if (wid === undefined) return this._sample(this.words, n);
+        // teleport: 30% chance
+        const teleports = [];
+        let nLocal = n;
+        if (Math.random() < 0.3 && this.V > 100) {
+            const region = Math.floor(wid / 80);
+            const distant = this.words.filter(w => Math.abs(Math.floor(this.w2i[w]/80) - region) >= 2);
+            if (distant.length) { teleports.push(distant[Math.floor(Math.random()*distant.length)]); nLocal--; }
+        }
+        const scored = [];
+        for (const w of this.words) {
+            if (w === word) continue;
+            const oid = this.w2i[w];
+            const h = this.hebb(wid, oid);
+            const c = cosSim(this.embeds[word], this.embeds[w]);
+            scored.push([h * 0.7 + c * 0.3, w]);
+        }
+        scored.sort((a, b) => b[0] - a[0]);
+        const top = scored.slice(0, nLocal * 2).map(s => s[1]);
+        return this._sample(top, Math.min(nLocal, top.length)).concat(teleports);
+    }
+
+    _sample(arr, n) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+        return a.slice(0, n);
+    }
+
+    buildTree(root, w = TREE_WIDTH, d = TREE_DEPTH) {
+        if (d === 0) return { w: root, ch: [] };
+        const nbrs = this.findNeighbors(root, w);
+        return { w: root, ch: nbrs.map(n => this.buildTree(n, w, d - 1)) };
+    }
+
+    collectLeaves(tree) {
+        if (!tree.ch.length) return [tree.w];
+        return tree.ch.flatMap(c => this.collectLeaves(c));
+    }
+
+    darioSample(ctx, candidates, usedCats) {
+        if (!candidates.length) return Math.floor(Math.random() * this.V);
+        const prev = ctx[ctx.length - 1] || 0;
+        const tau = TAU_BASE * this.tauMod();
+        const scores = candidates.map(cid => {
+            const B = BIGRAM_W * Math.log(this.bi(prev, cid) + 1e-10);
+            const H = ALPHA_D * this.hebb(prev, cid);
+            const F = BETA_D * (this.prophecy[cid] || 0);
+            const A = GAMMA_D * this.destiny[cid];
+            const Tr = this.trauma * 0.1;
+            const region = Math.floor(cid / 80);
+            const div = -1.5 * (usedCats[region] || 0);
+            return (B + H + F + A + Tr + div) / tau;
+        });
+        // softmax + top-k
+        const mx = Math.max(...scores);
+        const exps = scores.map(s => Math.exp(s - mx));
+        const sm = exps.reduce((a, b) => a + b, 0) + 1e-10;
+        const probs = exps.map(e => e / sm);
+        const indexed = probs.map((p, i) => [i, p]).sort((a, b) => b[1] - a[1]).slice(0, TOP_K);
+        const topP = indexed.reduce((s, [,p]) => s + p, 0) + 1e-10;
+        let r = Math.random(), cum = 0;
+        for (const [i, p] of indexed) {
+            cum += p / topP;
+            if (r <= cum) return candidates[i];
+        }
+        return candidates[indexed[indexed.length-1][0]];
+    }
+
+    reassemble(leafWords) {
+        const leafIds = [...new Set(leafWords.map(w => this.w2i[w]).filter(id => id !== undefined))];
+        if (!leafIds.length) return [];
+        for (const lid of leafIds) this.destiny[lid] += 1.0;
+        // prophecies
+        const freq = {};
+        leafIds.forEach(id => freq[id] = (freq[id]||0) + 1);
+        Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0,8).forEach(([id,cnt]) => {
+            this.prophecy[+id] = (this.prophecy[+id]||0) + cnt * 0.5;
+        });
+        const chain = [leafIds[Math.floor(Math.random()*leafIds.length)]];
+        const used = new Set(chain);
+        const usedCats = {};
+        for (let s = 0; s < CORPSE_LEN - 1; s++) {
+            this.exciteChamber(this.words[chain[chain.length-1]]);
+            this.stepChambers();
+            let cands = leafIds.filter(id => !used.has(id));
+            if (cands.length < 3) cands = leafIds;
+            const nxt = this.darioSample(chain, cands, usedCats);
+            chain.push(nxt);
+            used.add(nxt);
+            const region = Math.floor(nxt / 80);
+            usedCats[region] = (usedCats[region]||0) + 1;
+            // online hebbian
+            const prev = chain[chain.length-2];
+            const key = Math.min(prev,nxt)+','+Math.max(prev,nxt);
+            this.cooc[key] = (this.cooc[key]||0) + 0.5;
+            this.bigram[prev+','+nxt] = (this.bigram[prev+','+nxt]||0) + 0.5;
+            delete this.prophecy[nxt];
+            this.trauma = Math.min(1, this.trauma + 0.05) * 0.97;
+        }
+        return chain;
+    }
+
+    _wordCat(word) {
+        for (const [cat, ws] of Object.entries(this.cats))
+            if (ws.includes(word)) return cat;
+        return null;
+    }
+
+    _brodskyFormat(words) {
+        // Brodsky punctuation: nouns comma-separated, verbs isolated, dashes for drama
+        const verbCats = new Set(['action verbs','transformation / process']);
+        const out = [];
+        let nn = 0;
+        for (const w of words) {
+            const cat = this._wordCat(w);
+            const isVerb = cat && verbCats.has(cat);
+            if (isVerb) {
+                if (out.length) out.push('. ');
+                out.push(w[0].toUpperCase() + w.slice(1));
+                nn = 0;
+            } else {
+                if (!out.length) {
+                    out.push(w[0].toUpperCase() + w.slice(1));
+                } else if (nn >= 2) {
+                    out.push(' \u2014 ' + w);
+                    nn = 0;
+                } else {
+                    const last = out[out.length-1];
+                    if (last && (last.endsWith('.') || last.endsWith('!'))) {
+                        out.push(' ' + w[0].toUpperCase() + w.slice(1));
+                    } else {
+                        out.push(', ' + w);
+                    }
+                }
+                nn++;
+            }
+        }
+        return out.join('');
+    }
+
+    makeCoda(chain) {
+        const cw = chain.map(id => this.words[id]);
+        const shuffled = [...cw].sort(() => Math.random() - 0.5);
+        let end1 = null, end2 = null;
+        for (const w1 of shuffled) {
+            for (const w2 of cw) { if (rhymes(w1, w2)) { end1 = w1; end2 = w2; break; } }
+            if (end1) break;
+            for (const w2 of this.words) { if (rhymes(w1, w2)) { end1 = w1; end2 = w2; break; } }
+            if (end1) break;
+        }
+        if (!end1) { end1 = cw[0]; end2 = cw[cw.length-1]; }
+        const body = cw.filter(w => w !== end1 && w !== end2);
+        const mid = Math.max(Math.floor(body.length/2), 2);
+        const l1 = [...body.slice(0, mid), end1];
+        let l2 = [...body.slice(mid, mid+5), end2];
+        if (l2.length < 3) l2 = [...body.slice(1,5), end2];
+        return [this._brodskyFormat(l1), this._brodskyFormat(l2)];
+    }
+
+    chambersDisplay() {
+        return CHAMBERS.map((n,i) => this.chambers[i] > 0.08 ? `${n}:${this.chambers[i].toFixed(2)}` : null).filter(Boolean).join(' ');
+    }
+}
+
+// ═══ UI ═══
+let engine = new MicroKarpathy(DEFAULT_VOCAB);
 let term = document.getElementById("console");
 let inputEl = document.getElementById("prompt");
 let btnEl = document.getElementById("btn");
-let cursor = '<span class="cursor"></span>';
+let cursorHtml = '<span class="cursor"></span>';
 let isTyping = false;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function scrollBottom() { term.scrollTop = term.scrollHeight; }
 
-// Auto-scroll function
-function scrollToBottom() {
-    term.scrollTop = term.scrollHeight;
-}
-
-async function typeText(text, delay = 15, className = "") {
-    let currentHtml = term.innerHTML.replace(cursor, "");
-    let openTag = className ? `<span class="${className}">` : "";
-    let closeTag = className ? "</span>" : "";
-    
+async function typeText(text, delay = 12, cls = "") {
+    let html = term.innerHTML.replace(cursorHtml, "");
+    const open = cls ? `<span class="${cls}">` : "";
+    const close = cls ? "</span>" : "";
     for (let i = 0; i < text.length; i++) {
-        currentHtml += openTag + text.charAt(i) + closeTag;
-        term.innerHTML = currentHtml + cursor;
-        scrollToBottom();
-        await sleep(delay + Math.random() * 10);
+        html += open + text.charAt(i) + close;
+        term.innerHTML = html + cursorHtml;
+        scrollBottom();
+        await sleep(delay + Math.random() * 8);
     }
 }
 
-function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-// Enter key triggers button
-inputEl.addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        startAutopsy();
+async function printTree(tree, prefix, isLast) {
+    const conn = isLast ? '\u2514\u2500 ' : '\u251c\u2500 ';
+    await typeText(prefix + conn, 3);
+    await typeText(tree.w + '\n', 8, 'bone');
+    const childPre = prefix + (isLast ? '   ' : '\u2502  ');
+    for (let i = 0; i < tree.ch.length; i++) {
+        await printTree(tree.ch[i], childPre, i === tree.ch.length - 1);
     }
-});
+}
+
+function loadVocabFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        engine = new MicroKarpathy(e.target.result);
+        const html = term.innerHTML.replace(cursorHtml, "");
+        term.innerHTML = html + `\n<span class="bone">  [loaded ${engine.V} words from ${file.name}]</span>\n` + cursorHtml;
+        scrollBottom();
+    };
+    reader.readAsText(file);
+}
+
+inputEl.addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); startAutopsy(); } });
 
 async function startAutopsy() {
-    let prompt = inputEl.value.trim().toLowerCase();
+    const prompt = inputEl.value.trim();
     if (!prompt || isTyping) return;
-    
     isTyping = true;
     inputEl.value = "";
     inputEl.disabled = true;
     btnEl.disabled = true;
-    
-    term.innerHTML = term.innerHTML.replace(cursor, "") + `\n<span class="bone">> ${prompt}</span>\n\n` + cursor;
-    scrollToBottom();
 
-    let words = prompt.split(/[\s,.;!?]+/).filter(w => w.length > 0 && !STOPWORDS.includes(w));
-    if (words.length === 0) words = ["silence"];
-    let cores = words.slice(0, 4);
+    // reset engine state for this autopsy
+    engine.prophecy = {};
+    engine.destiny = new Float32Array(engine.V);
+    engine.trauma = 0;
+    engine.chambers = CHAMBERS.map(() => Math.random() * 0.2);
 
-    await sleep(400);
-    await typeText("================================================================\n");
-    await typeText("  AUTOPSY LESSON\n", 20, "blood");
+    term.innerHTML = term.innerHTML.replace(cursorHtml, "") +
+        `\n<span class="bone">> ${prompt}</span>\n\n` + cursorHtml;
+    scrollBottom();
+
+    await sleep(300);
+    await typeText("\u2554" + "\u2550".repeat(58) + "\u2557\n");
+    await typeText("\u2551  MICROKARPATHY \u2014 Prompt Autopsy Without Weights", 8);
+    await typeText(" ".repeat(9) + "\u2551\n", 2);
+    await typeText("\u2551  p(x|\u03a6) = softmax((B + \u03b1H + \u03b2F + \u03b3A + T) / \u03c4)", 8);
+    await typeText(" ".repeat(12) + "\u2551\n", 2);
+    await typeText("\u2551  zero weights \u00b7 zero gradients \u00b7 zero mercy", 8);
+    await typeText(" ".repeat(14) + "\u2551\n", 2);
+    await typeText("\u255a" + "\u2550".repeat(58) + "\u255d\n\n");
+
+    await typeText(`  vocab: ${engine.V} words | trained: 0\n\n`);
+    await typeText("=" .repeat(60) + "\n");
+    await typeText("  AUTOPSY REPORT\n", 15, "blood");
     await typeText(`  Subject: "${prompt}"\n`);
-    await typeText("================================================================\n\n");
-    
-    await typeText("  Extracting core nodes: ");
-    await typeText(cores.join(" ") + "\n\n", 30, "bone");
+    await typeText("=".repeat(60) + "\n\n");
 
+    // Dissection
+    const core = engine.dissect(prompt);
+    await typeText("  Core words: ");
+    await typeText(core.join(" ") + "\n", 20, "bone");
+
+    // Mutation trees
     let allLeaves = [];
-
-    // Grow Trees (Sliding up naturally as text prints)
-    for (let w of cores) {
-        await typeText(`  Tree [${w}]:\n`, 10, "blood");
-        await typeText(`    ${w}\n`, 10);
-        
-        let branches = 3;
-        for (let i = 0; i < branches; i++) {
-            let cat = getRandom(Object.keys(VOCAB));
-            let bWord = getRandom(VOCAB[cat]);
-            let isLast = i === branches - 1;
-            await typeText(`    ${isLast ? '└─' : '├─'} `, 10);
-            await typeText(`${bWord}\n`, 20, "bone");
-            
-            let subBranches = 2 + Math.floor(Math.random() * 2);
-            for (let j = 0; j < subBranches; j++) {
-                let subCat = getRandom(Object.keys(VOCAB));
-                let subWord = getRandom(VOCAB[subCat]);
-                let isSubLast = j === subBranches - 1;
-                let prefix = isLast ? "       " : "    │  ";
-                await typeText(`${prefix}${isSubLast ? '└─' : '├─'} `, 10);
-                await typeText(`${subWord}\n`, 20);
-                allLeaves.push(subWord);
-            }
-        }
-        await typeText("\n");
+    for (const word of core) {
+        await typeText(`\n  Tree [${word}]:\n`, 10, "blood");
+        const tree = engine.buildTree(word);
+        await printTree(tree, "    ", true);
+        allLeaves.push(...engine.collectLeaves(tree));
     }
+    const unique = [...new Set(allLeaves)];
+    await typeText(`\n  Collected ${unique.length} unique leaves\n\n`, 10);
+    await sleep(400);
 
-    await sleep(300);
-    await typeText(`  Collected ${allLeaves.length} unique leaves.\n\n`);
-    await sleep(300);
+    // Reassembly
+    const chain = engine.reassemble(unique);
+    const corpse = chain.map(id => engine.words[id]);
+    await typeText("  \u2500\u2500 CORPSE \u2500".repeat(5) + "\n", 8, "blood");
 
-    // Build Corpse
-    await typeText("  ── CORPSE ─────────────────────────────────────────\n", 10, "blood");
-    let corpseText = "  ";
-    for(let i=0; i<3; i++) {
-        let t = getRandom(TEMPLATES);
-        t = t.replace(/\[anatomy\]/g, () => getRandom(VOCAB.anatomy));
-        t = t.replace(/\[decay\]/g, () => getRandom(VOCAB.decay));
-        t = t.replace(/\[abstract\]/g, () => getRandom(VOCAB.abstract));
-        t = t.replace(/\[soviet\]/g, () => getRandom(VOCAB.soviet));
-        t = t.replace(/\[verbs\]/g, () => getRandom(VOCAB.verbs));
-        corpseText += t + " ";
+    // Template sentence
+    if (corpse.length >= 5) {
+        const tmpl = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
+        const shuffled = [...corpse].sort(() => Math.random()-0.5);
+        const fill = shuffled.slice(0, 6);
+        while (fill.length < 6) fill.push(corpse[0]);
+        let txt = tmpl;
+        for (let i = 0; i < 6; i++) txt = txt.replace(`{${i}}`, fill[i] || '');
+        await typeText("  " + txt + "\n", 35);
     }
-    await typeText(corpseText + "\n\n", 40);
-    await sleep(600);
+    await typeText("  " + corpse.join(" ") + ".\n\n", 25);
+    await sleep(500);
+
+    // Coda
+    const [l1, l2] = engine.makeCoda(chain);
+    await typeText("  \u2500\u2500 CODA \u2500".repeat(5) + "\n", 8, "blood");
+    await typeText("  " + l1 + ",\n", 40, "blood");
+    await typeText("  " + l2 + ".\n\n", 40, "blood");
+    await sleep(400);
+
+    // Chambers
+    const chDisplay = engine.chambersDisplay();
+    if (chDisplay) await typeText(`  chambers: ${chDisplay}\n`, 10);
 
     // Metrics
-    await typeText("  ── METRICS ────────────────────────────────────────\n", 10);
-    let pd = (0.8 + Math.random() * 0.19).toFixed(3);
-    let md = (0.7 + Math.random() * 0.25).toFixed(3);
-    await typeText(`  Phonetic Diversity: [##################..] ${pd}\n`);
-    await typeText(`  Mutation Depth:     [#################...] ${md}\n\n`);
+    const fps = new Set(corpse.map(phonetic));
+    const pd = (fps.size / Math.max(corpse.length, 1)).toFixed(3);
+    const md = (new Set(allLeaves).size / Math.max(allLeaves.length, 1)).toFixed(3);
+    const bar = v => '#'.repeat(Math.floor(v*20)) + '.'.repeat(20 - Math.floor(v*20));
+    await typeText("\n  \u2500\u2500 METRICS \u2500".repeat(5) + "\n", 8);
+    await typeText(`  Phonetic Diversity: [${bar(pd)}] ${pd}\n`);
+    await typeText(`  Mutation Depth:     [${bar(md)}] ${md}\n`);
+    await typeText(`\n  Vocabulary: ${engine.V} | Prophecies: ${Object.keys(engine.prophecy).length} active | Trauma: ${engine.trauma.toFixed(3)}\n`);
+
     await sleep(800);
-
-    // Ominous Couplet
-    await typeText("  ── COUPLET ────────────────────────────────────────\n", 10, "blood");
-    let couplet = getRandom(COUPLETS);
-    await typeText(`  ${couplet[0]}\n`, 50, "blood");
-    await typeText(`  ${couplet[1]}\n\n`, 50, "blood");
-
-    await sleep(1000); // Dramatic pause
-    
-    // The Signature
-    let currentHtml = term.innerHTML.replace(cursor, "");
-    currentHtml += `<div class="signature">Educational Autopsy Complete.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- microKarpathy.</div>\n\n`;
-    term.innerHTML = currentHtml + cursor;
-    scrollToBottom();
+    let html = term.innerHTML.replace(cursorHtml, "");
+    html += `<div class="signature">\n  [autopsy complete. \u2014 microKarpathy.]\n</div>\n\n`;
+    term.innerHTML = html + cursorHtml;
+    scrollBottom();
 
     isTyping = false;
     inputEl.disabled = false;
