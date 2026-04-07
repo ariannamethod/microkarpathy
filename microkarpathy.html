@@ -1071,6 +1071,7 @@ class MetaWeights {
     this.trauma = 0.0;
     this._buildFromOrdering();
     this._buildFromCorpus();
+    this._buildSPA();
   }
   _bgKey(a,b){ return `${a},${b}`; }
   _coKey(a,b){ return `${Math.min(a,b)},${Math.max(a,b)}`; }
@@ -1101,6 +1102,32 @@ class MetaWeights {
       const co = this._coKey(a,b);
       this.bigram.set(bg, (this.bigram.get(bg) || 0) + 2.0);
       this.cooc.set(co, (this.cooc.get(co) || 0) + 1.0);
+    }
+  }
+
+  _buildSPA(){
+    // SPA: Sentence-level Positional Attention (from Q).
+    // Multi-word entries sharing content words get co-occurrence boost.
+    const wordIndex = {};
+    for(let i=0;i<this.V;i++){
+      const tokens = this.words[i].toLowerCase().split(/\s+/);
+      if(tokens.length < 2) continue;
+      for(let tok of tokens){
+        tok = tok.replace(/[.,!?;:"'\-\(\)\[\]]/g, '');
+        if(tok.length > 3){
+          if(!wordIndex[tok]) wordIndex[tok] = [];
+          wordIndex[tok].push(i);
+        }
+      }
+    }
+    for(const ids of Object.values(wordIndex)){
+      if(ids.length < 2 || ids.length > 50) continue;
+      for(let i=0;i<ids.length;i++){
+        for(let j=i+1;j<Math.min(i+10, ids.length);j++){
+          const key = this._coKey(ids[i], ids[j]);
+          this.cooc.set(key, (this.cooc.get(key) || 0) + 0.3);
+        }
+      }
     }
   }
 

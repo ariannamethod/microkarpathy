@@ -256,6 +256,7 @@ class MetaWeights:
         self.trauma  = 0.0
         self._build_from_ordering()
         self._build_from_corpus()
+        self._build_spa()
 
     def _build_from_ordering(self):
         """Words listed together in the file are semantically related.
@@ -280,6 +281,27 @@ class MetaWeights:
                 self.bigram[(a, b)] = self.bigram.get((a, b), 0) + 2.0
                 key = (min(a, b), max(a, b))
                 self.cooc[key] = self.cooc.get(key, 0) + 1.0
+
+    def _build_spa(self):
+        """SPA: Sentence-level Positional Attention (from Q).
+        Multi-word entries sharing content words get co-occurrence boost.
+        'body knows before mind' links to 'body remembers in trigger point'
+        even if they're far apart in the file."""
+        word_index = {}
+        for i, entry in enumerate(self.words):
+            tokens = entry.lower().split()
+            if len(tokens) < 2: continue  # only for multi-word entries
+            for tok in tokens:
+                tok = tok.strip('.,!?;:"\'-()[]')
+                if len(tok) > 3:  # skip short words
+                    word_index.setdefault(tok, []).append(i)
+        # entries sharing content words get extra co-occurrence
+        for tok, ids in word_index.items():
+            if len(ids) < 2 or len(ids) > 50: continue  # skip unique / too common
+            for i in range(len(ids)):
+                for j in range(i + 1, min(i + 10, len(ids))):
+                    key = (min(ids[i], ids[j]), max(ids[i], ids[j]))
+                    self.cooc[key] = self.cooc.get(key, 0) + 0.3
 
     def bi(self, a, b):    return self.bigram.get((a, b), 0.001)
     def hebb(self, a, b):  return self.cooc.get((min(a, b), max(a, b)), 0.0)
