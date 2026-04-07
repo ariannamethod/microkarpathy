@@ -1,15 +1,5 @@
 """
 The most atomic way to perform a prompt autopsy.
-Without weights. Without gradients. Without mercy.
-
-This is not a language model. This is a literary necromancy engine
-that happens to have a transformer inside. The weights are ghosts —
-deterministic random projections that were never trained. The data
-builds itself into MetaWeights (co-occurrence, Hebbian traces,
-prophecy fields). The Dario Equation reassembles the corpse.
-
-Everything Karpathy's microgpt does with training,
-we do with statistics and gravitational attraction between dead words.
 
 Dario Equation: p(x|Phi) = softmax((T_x + B + a*H + b*F + g*A + Tr) / tau)
 
