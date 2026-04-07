@@ -13,7 +13,7 @@ Named after Andrej Karpathy, whose [microgpt.py](https://gist.github.com/karpath
 ### 1: Full Explanational Autopsy
 
 microKarpathy loves to explain but he does it vertically, performing open-heart surgery on the complexity of life.  
-here's a full corpse-map from the microKarpathy's morgue. I fed him with "can you tell me how to build an llm from scratch" (what else could I ask?!) and got this:  
+here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell me how to build an llm from scratch" (what else could I ask?!) and got this:  
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -24,15 +24,12 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "can yo
 
 ================================================================
   AUTOPSY REPORT
-  Subject: "can you tell me how to build an llm from scratch"
+  Subject: "tell me how to build an llm from scratch"
 ================================================================
 
-  Core words: stratosphere monolith pollen desiccated filtration
+  Core words: tell how build llm scratch
 
-  (tell → stratosphere, build → monolith, llm → pollen,
-   scratch → desiccated, how → filtration.
-   "can", "you", "me", "to", "from" — rejected.
-   stopwords, single letters, capitalization — discarded.)
+  (stopwords "me", "to" — rejected. the rest: your words, unmodified.)
 
   Tree [stratosphere]:
     └─ stratosphere
@@ -121,20 +118,19 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "can yo
   Phonetic Diversity: [###############.....] 0.786
   Mutation Depth:     [#########...........] 0.466
 
-  Vocabulary: 1135 | Prophecies: 8 active | Trauma: 0.529
+  Vocabulary: 1396 | Prophecies: 8 active | Trauma: 0.529
 
 ```
 
 **What just happened?**
   
-- you asked how to build an llm from scratch. the engine stripped "you", "can", "me", "to", "from" as stopwords and mapped the rest to its 1135-word vocabulary: **build → monolith. scratch → desiccated. llm → pollen. tell → stratosphere. how → filtration.**
-- **stratosphere** → ionosphere → ferment → yeast, bacteria. magnetosphere → firmament, heliosphere. The atmosphere becomes microbiology.
-- **monolith** → pedestal → menhir → barrow → ziggurat → pyramid. dolmen → phoneme → semantics → syntax → grammar. Ancient structures collapse into linguistics.
-- **pollen** → stem → root → spore → mycelium. lichen → coral → obsidian. Life cycles into geology.
-- **desiccated** → tenacious → resilient → rigid → stiff. necrotic → gangrenous → purulent. Texture becomes pathology.
-- **filtration** → chromatography → electrolysis → **sentence** → **bone**. Chemistry finds language. Language finds bone. The seed corpus remembers: *"bone becomes sentence and sentence becomes dust."*
+- **tell** → fitness → pressure → structure → system → evolution. Also → stratosphere → ionosphere → firmament. Telling is systemic. The word finds pressure.
+- **how** → diminuendo → pianissimo → silence. memorandum → dispatch → bulletin. pastiche → satire → irony. How dissolves into music, bureaucracy, and mockery.
+- **build** → tannin → vinegar → create → design → engineer → fabricate. Also → grammar → language → syntax. Building ferments into language.
+- **llm** → sign → meaning → speech → symbol → **language**. Also → space → energy → gravity → force. Three letters find the meaning of language through gravitational physics.
+- **scratch** → dialect → narrative → sonnet → prose. system → adaptation → evolution → complexity → truth. From scratch = from the beginning of language. Scratch finds poetry.
 
-The corpse reads: *"when tumulus dawn, elastic forgets barrow."* Nobody wrote these words. They were attracted to each other by the Dario Equation — gravitational pull between dead words in a 1135-word morgue.
+The corpse reads: *"precipitation pebble shroud until magnetosphere consumes."* Nobody wrote these words. They were attracted to each other by the Dario Equation — gravitational pull between dead words in a 1396-word morgue.
 
 ---
 
