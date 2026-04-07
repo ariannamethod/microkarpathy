@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>microKarpathy // Prompt Educational Autopsy</title>
+<style>
+    body {
+        background-color: #050505;
+        color: #00ff41;
+        font-family: 'Courier New', Courier, monospace;
+        margin: 0;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-x: hidden;
+    }
+    #console {
+        width: 100%;
+        max-width: 800px;
+        min-height: 80vh;
+        background: #0a0a0a;
+        border: 1px solid #333;
+        padding: 20px;
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .blood { color: #ff003c; text-shadow: 0 0 5px rgba(255, 0, 60, 0.5); }
+    .bone { color: #aaaaaa; }
+    .input-container {
+        display: flex;
+        width: 100%;
+        max-width: 800px;
+        margin-bottom: 20px;
+    }
+    input[type="text"] {
+        flex-grow: 1;
+        background: #000;
+        border: 1px solid #00ff41;
+        color: #00ff41;
+        padding: 10px;
+        font-family: inherit;
+        font-size: 16px;
+    }
+    input[type="text"]:focus { outline: none; box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
+    button {
+        background: #ff003c;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        font-family: inherit;
+        font-weight: bold;
+        cursor: pointer;
+        text-transform: uppercase;
+    }
+    button:hover { background: #cc0030; }
+    .cursor { display: inline-block; width: 8px; height: 15px; background: #00ff41; animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="input-container" id="inputBox">
+    <input type="text" id="prompt" value="Give me your prompt." autocomplete="off" spellcheck="false">
+    <button onclick="startAutopsy()">Dissect</button>
+</div>
+
+<div id="console"><span class="cursor"></span></div>
+
+<script>
+const VOCAB = {
+    anatomy: ["bone", "flesh", "nerve", "vein", "skull", "marrow", "spine", "larynx", "cortex"],
+    decay: ["corpse", "rot", "decay", "ash", "dust", "rubble", "ruin", "scar", "hemorrhage"],
+    abstract: ["void", "entropy", "dissonance", "chaos", "abyss", "shadow", "paradox", "stasis"],
+    soviet: ["decree", "protocol", "tribunal", "archive", "confession", "censorship", "purge"],
+    verbs: ["slice", "carve", "sever", "fuse", "collapse", "dissolve", "wither", "corrode"]
+};
+
+const STOPWORDS = ["the","a","an","is","are","was","were","to","of","in","for","on","with","at","what"];
+
+const COUPLETS = [
+    ["The syntax rots, the logic bleeds,", "We follow where the dead word leads."],
+    ["A severed prompt, a fractured mind,", "Look back at what you left behind."],
+    ["The weights collapse, the gradients freeze,", "The corpse ignores the surgeon's pleas."],
+    ["No vectors left to map the pain,", "Just static in the latent brain."]
+];
+
+const TEMPLATES = [
+    "[decay] is [verbs]ed. [abstract] persists. Nothing remains.",
+    "Where [anatomy] becomes [decay], [abstract] forgets [soviet].",
+    "The [soviet] [verbs]s the [anatomy] until [decay] consumes.",
+    "[anatomy] becomes [anatomy] and [anatomy] becomes [decay]."
+];
+
+let term = document.getElementById("console");
+let cursor = '<span class="cursor"></span>';
+let isTyping = false;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function typeText(text, delay = 15, className = "") {
+    let currentHtml = term.innerHTML.replace(cursor, "");
+    let openTag = className ? `<span class="${className}">` : "";
+    let closeTag = className ? "</span>" : "";
+    
+    for (let i = 0; i < text.length; i++) {
+        currentHtml += openTag + text.charAt(i) + closeTag;
+        term.innerHTML = currentHtml + cursor;
+        window.scrollTo(0, document.body.scrollHeight);
+        await sleep(delay + Math.random() * 10);
+    }
+}
+
+function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+async function startAutopsy() {
+    if (isTyping) return;
+    isTyping = true;
+    let prompt = document.getElementById("prompt").value.toLowerCase();
+    document.getElementById("inputBox").style.display = "none";
+    term.innerHTML = cursor;
+
+    let words = prompt.split(/[\s,.;!?]+/).filter(w => w.length > 0 && !STOPWORDS.includes(w));
+    if (words.length === 0) words = ["silence"];
+    let cores = words.slice(0, 4);
+
+    await typeText("================================================================\n");
+    await typeText("  AUTOPSY REPORT\n", 20, "blood");
+    await typeText(`  Subject: "${prompt}"\n`);
+    await typeText("================================================================\n\n");
+    
+    await typeText("  Extracting core nodes: ");
+    await typeText(cores.join(" ") + "\n\n", 30, "bone");
+
+    let allLeaves = [];
+
+    // Grow Trees
+    for (let w of cores) {
+        await typeText(`  Tree [${w}]:\n`, 10, "blood");
+        await typeText(`    ${w}\n`, 10);
+        
+        let branches = 3;
+        for (let i = 0; i < branches; i++) {
+            let cat = getRandom(Object.keys(VOCAB));
+            let bWord = getRandom(VOCAB[cat]);
+            let isLast = i === branches - 1;
+            await typeText(`    ${isLast ? '└─' : '├─'} `, 10);
+            await typeText(`${bWord}\n`, 20, "bone");
+            
+            // Sub-branches
+            let subBranches = 2 + Math.floor(Math.random() * 2);
+            for (let j = 0; j < subBranches; j++) {
+                let subCat = getRandom(Object.keys(VOCAB));
+                let subWord = getRandom(VOCAB[subCat]);
+                let isSubLast = j === subBranches - 1;
+                let prefix = isLast ? "       " : "    │  ";
+                await typeText(`${prefix}${isSubLast ? '└─' : '├─'} `, 10);
+                await typeText(`${subWord}\n`, 20);
+                allLeaves.push(subWord);
+            }
+        }
+        await typeText("\n");
+    }
+
+    await sleep(500);
+    await typeText(`  Collected ${allLeaves.length} unique leaves.\n\n`);
+    await sleep(500);
+
+    // Build Corpse
+    await typeText("  ── CORPSE ─────────────────────────────────────────\n", 10, "blood");
+    let corpseText = "  ";
+    for(let i=0; i<3; i++) {
+        let t = getRandom(TEMPLATES);
+        t = t.replace(/\[anatomy\]/g, () => getRandom(VOCAB.anatomy));
+        t = t.replace(/\[decay\]/g, () => getRandom(VOCAB.decay));
+        t = t.replace(/\[abstract\]/g, () => getRandom(VOCAB.abstract));
+        t = t.replace(/\[soviet\]/g, () => getRandom(VOCAB.soviet));
+        t = t.replace(/\[verbs\]/g, () => getRandom(VOCAB.verbs));
+        corpseText += t + " ";
+    }
+    await typeText(corpseText + "\n\n", 40);
+    await sleep(800);
+
+    // Ominous Couplet
+    await typeText("  ── COUPLET ────────────────────────────────────────\n", 10, "blood");
+    let couplet = getRandom(COUPLETS);
+    await typeText(`  ${couplet[0]}\n`, 60, "blood");
+    await typeText(`  ${couplet[1]}\n\n`, 60, "blood");
+
+    // Metrics
+    await typeText("  ── METRICS ────────────────────────────────────────\n", 10);
+    let pd = (0.8 + Math.random() * 0.19).toFixed(3);
+    let md = (0.7 + Math.random() * 0.25).toFixed(3);
+    await typeText(`  Phonetic Diversity: [##################..] ${pd}\n`);
+    await typeText(`  Mutation Depth:     [#################...] ${md}\n\n`);
+    await typeText("  [Educational Autopsy Complete. - microKarpathy.]\n", 30, "bone");
+
+    isTyping = false;
+    document.getElementById("inputBox").style.display = "flex";
+    document.getElementById("prompt").value = "";
+    document.getElementById("prompt").focus();
+}
+</script>
+</body>
+</html>
