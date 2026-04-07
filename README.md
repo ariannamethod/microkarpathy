@@ -2,7 +2,7 @@
 **by Arianna Method**  
 ---
   
-microKarpathy is a Python script (atomic) which takes your innocent prompts like a psychotic linguist, tears them apart like a psychopathic pathologist, builds a recursive tree of semantic mutations, and then, like Frankenstein having a particularly creative day — reassembles the corpse into something *new*. for educational purposes only. 
+microKarpathy is an atomic Python script which takes (for educational purposes) your innocent prompts like a psychotic linguist, tears them apart like a psychopathic pathologist, builds a recursive tree of semantic mutations, and then, like Frankenstein having a particularly creative day — reassembles the corpse into something *new*. then microKarpathy writes an infernal couple (CODA) about an autopsy. 
 
 no dependencies. no internet. no autoregressive generation. ain't no conscience either.
 
