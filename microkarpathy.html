@@ -973,11 +973,14 @@ class GhostTransformer {
         wk: makeMatrix(DIM, DIM, rand, 0.08),
         wv: makeMatrix(DIM, DIM, rand, 0.08),
         wo: makeMatrix(DIM, DIM, rand, 0.08),
+        wr: makeMatrix(BLOCK_SIZE, DIM, rand, 0.08), // RRPRAM: DIM → positions
+        gate: [gaussian(rand, 0.1)],                   // blend gate
         ff1: makeMatrix(4*DIM, DIM, rand, 0.08),
         ff2: makeMatrix(DIM, 4*DIM, rand, 0.08),
       });
     }
-    this.nParams = vocabSize * DIM * 2 + DIM * BLOCK_SIZE + N_LAYER * (4*DIM*DIM + 4*DIM*DIM + DIM*4*DIM);
+    this.nParams = vocabSize*DIM*2 + DIM*BLOCK_SIZE +
+      N_LAYER*(4*DIM*DIM + DIM*BLOCK_SIZE + 1 + 4*DIM*DIM + DIM*4*DIM);
   }
 
   forward(tokenIds, kvCache){
@@ -999,13 +1002,15 @@ class GhostTransformer {
 
       kvCache[li].k.push(k);
       kvCache[li].v.push(v);
+      const seqLen = kvCache[li].k.length;
 
-      const xAttn = [];
+      // ── QKV multi-head attention ──
+      const xQkv = [];
       for(let h=0;h<N_HEAD;h++){
         const hs = h * HEAD_DIM;
         const qh = q.slice(hs, hs + HEAD_DIM);
         const scores = [];
-        for(let t=0;t<kvCache[li].k.length;t++){
+        for(let t=0;t<seqLen;t++){
           const kh = kvCache[li].k[t].slice(hs, hs + HEAD_DIM);
           let dot = 0;
           for(let j=0;j<HEAD_DIM;j++) dot += qh[j] * kh[j];
@@ -1014,20 +1019,35 @@ class GhostTransformer {
         const w = softmaxVec(scores);
         for(let j=0;j<HEAD_DIM;j++){
           let val = 0;
-          for(let t=0;t<w.length;t++) val += w[t] * kvCache[li].v[t][hs + j];
-          xAttn.push(val);
+          for(let t=0;t<seqLen;t++) val += w[t] * kvCache[li].v[t][hs + j];
+          xQkv.push(val);
         }
       }
 
-      let proj = Array.from(linear(xAttn, layer.wo));
-      x = proj.map((v,i) => v + xr[i]);
+      // ── RRPRAM: positional routing (x @ W_r → position scores) ──
+      const rrpAll = Array.from(linear(x, layer.wr));
+      const rrpScores = rrpAll.slice(0, seqLen);
+      const rrpW = softmaxVec(rrpScores);
+      const xRrp = [];
+      for(let j=0;j<DIM;j++){
+        let val = 0;
+        for(let t=0;t<seqLen;t++) val += rrpW[t] * kvCache[li].v[t][j];
+        xRrp.push(val);
+      }
+
+      // ── gated blend: sigmoid(gate) * QKV + (1-g) * RRPRAM ──
+      const g = 1.0 / (1.0 + Math.exp(-layer.gate[0]));
+      const xBlend = xQkv.map((a,i) => g * a + (1.0 - g) * xRrp[i]);
+
+      let proj = Array.from(linear(xBlend, layer.wo));
+      x = proj.map((val,i) => val + xr[i]);
 
       const xr2 = x.slice();
       x = rmsnorm(x);
       let h1 = Array.from(linear(x, layer.ff1));
-      h1 = h1.map(v => Math.max(0, v));
+      h1 = h1.map(val => Math.max(0, val));
       let ff = Array.from(linear(h1, layer.ff2));
-      x = ff.map((v,i) => v + xr2[i]);
+      x = ff.map((val,i) => val + xr2[i]);
     }
 
     x = rmsnorm(x);

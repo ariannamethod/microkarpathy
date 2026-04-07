@@ -158,7 +158,7 @@ def softmax_vec(logits):
     return [e / s for e in exps]
 
 class GhostTransformer:
-    """A real transformer. Initialized once. Never trained. Ghost weights."""
+    """A real transformer with RRPRAM. Initialized once. Never trained. Ghost weights."""
 
     def __init__(self, vocab_size):
         self.V = vocab_size
@@ -170,13 +170,16 @@ class GhostTransformer:
             self.layers.append({
                 'wq': make_matrix(DIM, DIM), 'wk': make_matrix(DIM, DIM),
                 'wv': make_matrix(DIM, DIM), 'wo': make_matrix(DIM, DIM),
+                'wr': make_matrix(BLOCK_SIZE, DIM),  # RRPRAM: DIM → positions
+                'gate': [random.gauss(0, 0.1)],       # blend gate (QKV vs RRPRAM)
                 'ff1': make_matrix(4 * DIM, DIM), 'ff2': make_matrix(DIM, 4 * DIM),
             })
         self.n_params = (vocab_size * DIM * 2 + DIM * BLOCK_SIZE +
-                         N_LAYER * (4 * DIM * DIM + 4 * DIM * DIM + DIM * 4 * DIM))
+                         N_LAYER * (4 * DIM * DIM + DIM * BLOCK_SIZE + 1 +
+                                    4 * DIM * DIM + DIM * 4 * DIM))
 
     def forward(self, token_ids, kv_cache):
-        """Forward pass. Ghost weights provide chaos substrate."""
+        """Forward pass. QKV attention + RRPRAM, gated blend."""
         pos = len(kv_cache[0]['k']) if kv_cache[0]['k'] else 0
         tid = token_ids[-1] % self.V
 
@@ -195,23 +198,35 @@ class GhostTransformer:
             kv_cache[li]['k'].append(k)
             kv_cache[li]['v'].append(v)
 
-            # multi-head causal attention
-            x_attn = []
+            seq_len = len(kv_cache[li]['k'])
+
+            # ── QKV multi-head causal attention ──
+            x_qkv = []
             for h in range(N_HEAD):
                 hs = h * HEAD_DIM
                 qh = q[hs:hs + HEAD_DIM]
                 scores = []
-                for t in range(len(kv_cache[li]['k'])):
+                for t in range(seq_len):
                     kh = kv_cache[li]['k'][t][hs:hs + HEAD_DIM]
                     scores.append(sum(qh[j] * kh[j] for j in range(HEAD_DIM)) / HEAD_DIM ** 0.5)
                 w = softmax_vec(scores)
-                head_out = []
                 for j in range(HEAD_DIM):
-                    head_out.append(sum(w[t] * kv_cache[li]['v'][t][hs + j]
-                                        for t in range(len(w))))
-                x_attn.extend(head_out)
+                    x_qkv.append(sum(w[t] * kv_cache[li]['v'][t][hs + j]
+                                     for t in range(seq_len)))
 
-            x = linear(x_attn, layer['wo'])
+            # ── RRPRAM: positional routing (x @ W_r → position scores) ──
+            rrp_scores = linear(x, layer['wr'])[:seq_len]
+            rrp_w = softmax_vec(rrp_scores)
+            x_rrp = []
+            for j in range(DIM):
+                x_rrp.append(sum(rrp_w[t] * kv_cache[li]['v'][t][j]
+                                 for t in range(seq_len)))
+
+            # ── gated blend: sigmoid(gate) * QKV + (1-g) * RRPRAM ──
+            g = 1.0 / (1.0 + math.exp(-layer['gate'][0]))
+            x_blend = [g * a + (1.0 - g) * r for a, r in zip(x_qkv, x_rrp)]
+
+            x = linear(x_blend, layer['wo'])
             x = [a + b for a, b in zip(x, xr)]
 
             # FFN
