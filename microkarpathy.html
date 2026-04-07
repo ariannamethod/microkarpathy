@@ -3,73 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>microKarpathy // Prompt Educational Autopsy</title>
+<title>microKarpathy: educational prompt autopsy</title>
 <style>
+    :root {
+        --term-bg: #050505;
+        --term-fg: #00ff41;
+        --blood: #ff003c;
+        --bone: #aaaaaa;
+    }
     body {
-        background-color: #050505;
-        color: #00ff41;
+        background-color: var(--term-bg);
+        color: var(--term-fg);
         font-family: 'Courier New', Courier, monospace;
         margin: 0;
-        padding: 40px;
+        padding: 0;
+        overflow-x: hidden;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        overflow-x: hidden;
+        height: 100vh;
+    }
+    /* CRT Scanline effect */
+    body::after {
+        content: " ";
+        display: block;
+        position: fixed;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        z-index: 2;
+        background-size: 100% 2px, 3px 100%;
+        pointer-events: none;
     }
     #console {
-        width: 100%;
-        max-width: 800px;
-        min-height: 80vh;
-        background: #0a0a0a;
-        border: 1px solid #333;
+        flex-grow: 1;
         padding: 20px;
-        box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+        padding-bottom: 100px; /* Space for input */
+        overflow-y: auto;
         white-space: pre-wrap;
         word-wrap: break-word;
-        font-size: 14px;
-        line-height: 1.4;
+        font-size: 15px;
+        line-height: 1.5;
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
     }
-    .blood { color: #ff003c; text-shadow: 0 0 5px rgba(255, 0, 60, 0.5); }
-    .bone { color: #aaaaaa; }
-    .input-container {
-        display: flex;
+    .blood { color: var(--blood); text-shadow: 0 0 8px rgba(255, 0, 60, 0.6); }
+    .bone { color: var(--bone); text-shadow: 0 0 5px rgba(170, 170, 170, 0.4); }
+    .signature { color: var(--blood); font-style: italic; margin-top: 20px; font-weight: bold; }
+    
+    #input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
         width: 100%;
-        max-width: 800px;
-        margin-bottom: 20px;
+        background: #000;
+        border-top: 2px solid var(--term-fg);
+        display: flex;
+        padding: 15px;
+        box-sizing: border-box;
+        z-index: 10;
+        box-shadow: 0 -5px 15px rgba(0, 255, 65, 0.1);
     }
     input[type="text"] {
         flex-grow: 1;
-        background: #000;
-        border: 1px solid #00ff41;
-        color: #00ff41;
-        padding: 10px;
+        background: transparent;
+        border: none;
+        color: var(--term-fg);
         font-family: inherit;
         font-size: 16px;
+        outline: none;
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
     }
-    input[type="text"]:focus { outline: none; box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
+    input[type="text"]::placeholder { color: rgba(0, 255, 65, 0.3); }
     button {
-        background: #ff003c;
+        background: var(--blood);
         color: #fff;
-        border: none;
-        padding: 10px 20px;
+        border: 1px solid #fff;
+        padding: 10px 25px;
         font-family: inherit;
         font-weight: bold;
         cursor: pointer;
         text-transform: uppercase;
+        margin-left: 15px;
+        box-shadow: 0 0 10px rgba(255, 0, 60, 0.4);
+        transition: all 0.1s;
     }
-    button:hover { background: #cc0030; }
-    .cursor { display: inline-block; width: 8px; height: 15px; background: #00ff41; animation: blink 1s step-end infinite; }
+    button:hover { background: #fff; color: var(--blood); border-color: var(--blood); }
+    button:disabled { background: #333; color: #666; border-color: #333; cursor: not-allowed; box-shadow: none;}
+    
+    .cursor { display: inline-block; width: 10px; height: 16px; background: var(--term-fg); animation: blink 1s step-end infinite; vertical-align: middle; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: var(--term-fg); }
 </style>
 </head>
 <body>
 
-<div class="input-container" id="inputBox">
-    <input type="text" id="prompt" value="Give me your prompt." autocomplete="off" spellcheck="false">
-    <button onclick="startAutopsy()">Dissect</button>
-</div>
-
 <div id="console"><span class="cursor"></span></div>
+
+<div id="input-container">
+    <span style="margin-right: 10px; font-size: 16px; line-height: 38px;">></span>
+    <input type="text" id="prompt" placeholder="Ready for educational autopsy..." autocomplete="off" spellcheck="false">
+    <button id="btn" onclick="startAutopsy()">Dissect</button>
+</div>
 
 <script>
 const VOCAB = {
@@ -97,10 +133,17 @@ const TEMPLATES = [
 ];
 
 let term = document.getElementById("console");
+let inputEl = document.getElementById("prompt");
+let btnEl = document.getElementById("btn");
 let cursor = '<span class="cursor"></span>';
 let isTyping = false;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Auto-scroll function
+function scrollToBottom() {
+    term.scrollTop = term.scrollHeight;
+}
 
 async function typeText(text, delay = 15, className = "") {
     let currentHtml = term.innerHTML.replace(cursor, "");
@@ -110,26 +153,40 @@ async function typeText(text, delay = 15, className = "") {
     for (let i = 0; i < text.length; i++) {
         currentHtml += openTag + text.charAt(i) + closeTag;
         term.innerHTML = currentHtml + cursor;
-        window.scrollTo(0, document.body.scrollHeight);
+        scrollToBottom();
         await sleep(delay + Math.random() * 10);
     }
 }
 
 function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+// Enter key triggers button
+inputEl.addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        startAutopsy();
+    }
+});
+
 async function startAutopsy() {
-    if (isTyping) return;
+    let prompt = inputEl.value.trim().toLowerCase();
+    if (!prompt || isTyping) return;
+    
     isTyping = true;
-    let prompt = document.getElementById("prompt").value.toLowerCase();
-    document.getElementById("inputBox").style.display = "none";
-    term.innerHTML = cursor;
+    inputEl.value = "";
+    inputEl.disabled = true;
+    btnEl.disabled = true;
+    
+    term.innerHTML = term.innerHTML.replace(cursor, "") + `\n<span class="bone">> ${prompt}</span>\n\n` + cursor;
+    scrollToBottom();
 
     let words = prompt.split(/[\s,.;!?]+/).filter(w => w.length > 0 && !STOPWORDS.includes(w));
     if (words.length === 0) words = ["silence"];
     let cores = words.slice(0, 4);
 
+    await sleep(400);
     await typeText("================================================================\n");
-    await typeText("  AUTOPSY REPORT\n", 20, "blood");
+    await typeText("  AUTOPSY LESSON\n", 20, "blood");
     await typeText(`  Subject: "${prompt}"\n`);
     await typeText("================================================================\n\n");
     
@@ -138,7 +195,7 @@ async function startAutopsy() {
 
     let allLeaves = [];
 
-    // Grow Trees
+    // Grow Trees (Sliding up naturally as text prints)
     for (let w of cores) {
         await typeText(`  Tree [${w}]:\n`, 10, "blood");
         await typeText(`    ${w}\n`, 10);
@@ -151,7 +208,6 @@ async function startAutopsy() {
             await typeText(`    ${isLast ? '└─' : '├─'} `, 10);
             await typeText(`${bWord}\n`, 20, "bone");
             
-            // Sub-branches
             let subBranches = 2 + Math.floor(Math.random() * 2);
             for (let j = 0; j < subBranches; j++) {
                 let subCat = getRandom(Object.keys(VOCAB));
@@ -166,9 +222,9 @@ async function startAutopsy() {
         await typeText("\n");
     }
 
-    await sleep(500);
+    await sleep(300);
     await typeText(`  Collected ${allLeaves.length} unique leaves.\n\n`);
-    await sleep(500);
+    await sleep(300);
 
     // Build Corpse
     await typeText("  ── CORPSE ─────────────────────────────────────────\n", 10, "blood");
@@ -183,13 +239,7 @@ async function startAutopsy() {
         corpseText += t + " ";
     }
     await typeText(corpseText + "\n\n", 40);
-    await sleep(800);
-
-    // Ominous Couplet
-    await typeText("  ── COUPLET ────────────────────────────────────────\n", 10, "blood");
-    let couplet = getRandom(COUPLETS);
-    await typeText(`  ${couplet[0]}\n`, 60, "blood");
-    await typeText(`  ${couplet[1]}\n\n`, 60, "blood");
+    await sleep(600);
 
     // Metrics
     await typeText("  ── METRICS ────────────────────────────────────────\n", 10);
@@ -197,12 +247,26 @@ async function startAutopsy() {
     let md = (0.7 + Math.random() * 0.25).toFixed(3);
     await typeText(`  Phonetic Diversity: [##################..] ${pd}\n`);
     await typeText(`  Mutation Depth:     [#################...] ${md}\n\n`);
-    await typeText("  [Educational Autopsy Complete. - microKarpathy.]\n", 30, "bone");
+    await sleep(800);
+
+    // Ominous Couplet
+    await typeText("  ── COUPLET ────────────────────────────────────────\n", 10, "blood");
+    let couplet = getRandom(COUPLETS);
+    await typeText(`  ${couplet[0]}\n`, 50, "blood");
+    await typeText(`  ${couplet[1]}\n\n`, 50, "blood");
+
+    await sleep(1000); // Dramatic pause
+    
+    // The Signature
+    let currentHtml = term.innerHTML.replace(cursor, "");
+    currentHtml += `<div class="signature">Educational Autopsy Complete.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- microKarpathy.</div>\n\n`;
+    term.innerHTML = currentHtml + cursor;
+    scrollToBottom();
 
     isTyping = false;
-    document.getElementById("inputBox").style.display = "flex";
-    document.getElementById("prompt").value = "";
-    document.getElementById("prompt").focus();
+    inputEl.disabled = false;
+    btnEl.disabled = false;
+    inputEl.focus();
 }
 </script>
 </body>
