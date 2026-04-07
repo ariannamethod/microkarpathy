@@ -13,7 +13,7 @@ Named after Andrej Karpathy, whose [microgpt.py](https://gist.github.com/karpath
 ### 1: Full Explanational Autopsy
 
 microKarpathy loves to explain but he does it vertically, performing open-heart surgery on the complexity of life.  
-here's a full corpse-map from the microKarpathy's morgue. I feed him with "destroy the sentence" and got this:  
+here's a full corpse-map from the microKarpathy's morgue. I fed him with "destroy the sentence" and got this:  
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -88,7 +88,7 @@ The corpse reads: *"where invocation word, electrolysis becomes spectroscopy, an
 
 #### Act I: The Dissection of Core  
 
-sometimes educational purposes demand hard decisions. microKarpathy takes what you said, strips it down to the bone and then turns it through a brutal tokenization process:  
+sometimes educational purposes demand hard decisions. microKarpathy takes what you said, strips it down to the bone and then runs it through a brutal tokenization process:  
 
 - stopwords, numbers, capitalization: rejected.  
 - punctuation: never heard of her.  
@@ -140,12 +140,12 @@ the coda is named after the musical term (the concluding passage) and is definit
 ### Architecture
 
 ```
-microkarpathy.py     675 lines   Python autopsy engine, Dario Equation,
+microkarpathy.py     701 lines   Python autopsy engine, Dario Equation,
                                  ghost transformer, Kuramoto chambers,
                                  MetaWeights, mutation trees, coda
-microkarpathy.txt    1176 lines  1135 words in 18 semantic categories
+microkarpathy.txt    1170 lines  1135 words in 18 semantic categories
                                  (the vocabulary IS the embedding space)
-microkarpathy.html   ~500 lines  browser inference with CRT terminal
+microkarpathy.html   ~1240 lines browser inference with CRT terminal
                                  (same engine ported to JavaScript)
 ```
 

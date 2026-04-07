@@ -500,7 +500,6 @@ terminus
 origin
 destination
 trajectory
-vector
 field
 potential
 latent
@@ -805,7 +804,6 @@ hallucination
 delusion
 obsession
 compulsion
-fixation
 perseveration
 rumination
 ideation
@@ -892,7 +890,6 @@ buttress
 foundation
 cornerstone
 lintel
-threshold
 facade
 cornice
 parapet
@@ -995,7 +992,6 @@ classification
 enumeration
 inventory
 register
-catalog
 repository
 dossier
 communique
@@ -1027,7 +1023,6 @@ agitation
 indoctrination
 reeducation
 rehabilitation
-purge
 denunciation
 confession
 tribunal
@@ -1035,7 +1030,6 @@ tribunal
 # fabric / material
 thread
 weave
-warp
 weft
 loom
 spindle
