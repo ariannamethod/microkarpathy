@@ -16,7 +16,7 @@ here's a full corpse-map from the microKarpathy's morgue. I feed him with "destr
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  MICROKARPATHY — Prompt Autopsy Without Weights              ║
-║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)         ║
+║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)           ║
 ║  zero weights · zero gradients · zero mercy                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
