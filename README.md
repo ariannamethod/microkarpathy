@@ -123,8 +123,32 @@ microKarpathy's tree is a tree where each word branches into `width` children, r
 now that we have a forest of mutated word-trees, it's time to play God. after all leafs collected from all trees, the final mutation at the bottom of every branch.
 
 
+### Why?
+
+good question. why does this exist?  
   
+perhaps to demonstrate that:  
+
+- words are fungible
+- meaning is contextual
+- promts are just waiting to be perturbed
+- sometimes you need to break things to understand them
+
+or maybe it's just fun to be a badass and to watch language come apart at the seams.
+
+
+### Credits
+
+- Andrej Karpathy (the man, not the engine): i'm sorry (actually - not)
+- The Dario Equation (the gravitational law of dead language)
+- Dr. Frankenstein (the original reassembly artist)
+- my BPD.
 
   
+### License
+
+GNU GPL 3.0. 
+you can do whatever you want but you should open your code. that's a deal.  
+
 
 
