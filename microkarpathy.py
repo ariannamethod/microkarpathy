@@ -381,33 +381,30 @@ def dissect(prompt, vocab_set, words, embeds):
 # MUTATION TREE — recursive semantic branching
 # ═══════════════════════════════════════════════════════════════════
 
-def find_neighbors(word, words, meta, embeds, n=TREE_WIDTH):
+def find_neighbors(word, words, meta, embeds, n=TREE_WIDTH, exclude=None):
     """MetaWeight co-occurrence + hash cosine + teleportation.
-    20% chance of jumping to a random distant word — cross-pollination
-    is what makes the corpse interesting."""
+    Excludes already-used words to prevent repetition in trees."""
+    ex = exclude or set()
     wid = meta.w2i.get(word)
     if wid is None:
-        # OOV word: hash cosine against full vocab (blind but deterministic)
         vec = hash_embed(word)
-        scored = [(cosine_sim(vec, embeds[w]), w) for w in words]
+        scored = [(cosine_sim(vec, embeds[w]), w) for w in words if w not in ex]
         scored.sort(reverse=True)
         top = [w for _, w in scored[:n * 2]]
         return random.sample(top, min(n, len(top)))
 
-    # teleport: one in five neighbors comes from a distant category
     n_local = n
     teleports = []
     if random.random() < 0.4 and len(words) > 100:
-        # pick from a distant region of the vocabulary
         region = wid // 100
-        distant = [w for w in words if abs(meta.w2i[w] // 100 - region) >= 2]
+        distant = [w for w in words if abs(meta.w2i[w] // 100 - region) >= 2 and w not in ex]
         if distant:
             teleports = [random.choice(distant)]
             n_local = n - 1
 
     scored = []
     for w in words:
-        if w == word: continue
+        if w == word or w in ex: continue
         oid = meta.w2i[w]
         h = meta.hebb(wid, oid)
         c = cosine_sim(embeds[word], embeds[w])
@@ -417,10 +414,13 @@ def find_neighbors(word, words, meta, embeds, n=TREE_WIDTH):
     result = random.sample(top, min(n_local, len(top)))
     return result + teleports
 
-def build_tree(root, words, meta, embeds, w=TREE_WIDTH, d=TREE_DEPTH):
+def build_tree(root, words, meta, embeds, w=TREE_WIDTH, d=TREE_DEPTH, used=None):
+    if used is None: used = set()
+    used.add(root)
     if d == 0: return {'w': root, 'ch': []}
-    nbrs = find_neighbors(root, words, meta, embeds, w)
-    return {'w': root, 'ch': [build_tree(n, words, meta, embeds, w, d - 1) for n in nbrs]}
+    nbrs = find_neighbors(root, words, meta, embeds, w, exclude=used)
+    for n in nbrs: used.add(n)
+    return {'w': root, 'ch': [build_tree(n, words, meta, embeds, w, d - 1, used) for n in nbrs]}
 
 def collect_leaves(tree):
     if not tree['ch']: return [tree['w']]

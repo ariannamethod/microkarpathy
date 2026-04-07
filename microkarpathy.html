@@ -1217,11 +1217,12 @@ class MicroKarpathy {
     return core.slice(0, 5);
   }
 
-  findNeighbors(word, n=TREE_WIDTH){
+  findNeighbors(word, n=TREE_WIDTH, exclude=null){
+    const ex = exclude || new Set();
     const wid = this.w2i[word];
     if(wid === undefined){
       const vec = hashEmbed(word);
-      const scored = this.words.map(w => [cosineSim(vec, this.embeds[w]), w]);
+      const scored = this.words.filter(w => !ex.has(w)).map(w => [cosineSim(vec, this.embeds[w]), w]);
       scored.sort((a,b)=>b[0]-a[0]);
       return sampleShuffled(scored.slice(0, n*2).map(x=>x[1]), Math.min(n, scored.length));
     }
@@ -1230,7 +1231,7 @@ class MicroKarpathy {
     const teleports = [];
     if(Math.random() < 0.4 && this.words.length > 100){
       const region = Math.floor(wid / 100);
-      const distant = this.words.filter(w => Math.abs(Math.floor(this.w2i[w] / 100) - region) >= 2);
+      const distant = this.words.filter(w => Math.abs(Math.floor(this.w2i[w]/100) - region) >= 2 && !ex.has(w));
       if(distant.length){
         teleports.push(distant[Math.floor(Math.random() * distant.length)]);
         nLocal = n - 1;
@@ -1239,7 +1240,7 @@ class MicroKarpathy {
 
     const scored = [];
     for(const w of this.words){
-      if(w === word) continue;
+      if(w === word || ex.has(w)) continue;
       const oid = this.w2i[w];
       const h = this.meta.hebb(wid, oid);
       const c = cosineSim(this.embeds[word], this.embeds[w]);
@@ -1250,10 +1251,13 @@ class MicroKarpathy {
     return sampleShuffled(top, Math.min(nLocal, top.length)).concat(teleports);
   }
 
-  buildTree(root, w=TREE_WIDTH, d=TREE_DEPTH){
+  buildTree(root, w=TREE_WIDTH, d=TREE_DEPTH, used=null){
+    if(!used) used = new Set();
+    used.add(root);
     if(d === 0) return {w: root, ch: []};
-    const nbrs = this.findNeighbors(root, w);
-    return {w: root, ch: nbrs.map(n => this.buildTree(n, w, d-1))};
+    const nbrs = this.findNeighbors(root, w, used);
+    for(const n of nbrs) used.add(n);
+    return {w: root, ch: nbrs.map(n => this.buildTree(n, w, d-1, used))};
   }
 
   collectLeaves(tree){
