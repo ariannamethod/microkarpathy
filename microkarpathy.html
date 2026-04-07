@@ -167,10 +167,10 @@ const SEED_CORPUS = (
 );
 
 const STOPS = new Set(
-  "the a an is are was were be been being have has had do does did will would " +
+  ("the a an is are was were be been being have has had do does did will would " +
   "shall should may might can could and but or nor for yet so in on at to of by " +
   "with from what that this it i you he she we they my his her its our your their " +
-  "me him us them not no very just also only"
+  "me him us them not no very just also only")
   .split(/\s+/)
 );
 
@@ -1464,14 +1464,7 @@ async function startAutopsy(){
   appendLineNow(`\n<span class="bone">&gt; ${prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>\n\n`);
   await sleep(180);
 
-  await typeText("╔" + "═".repeat(62) + "╗\n");
-  await typeText("║  MICROKARPATHY — Educational Prompt Autopsy", 6);
-  await typeText(" ".repeat(18) + "║\n", 1);
-  await typeText("║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)", 6);
-  await typeText(" ".repeat(8) + "║\n", 1);
-  await typeText("║  zero weights · zero gradients · zero mercy", 6);
-  await typeText(" ".repeat(18) + "║\n", 1);
-  await typeText("╚" + "═".repeat(62) + "╝\n\n");
+  await typeText("  MICROKARPATHY — Educational Prompt Autopsy\n\n");
 
   await typeText(`  vocab: ${engine.V} words | ghost params: ${engine.xf.nParams.toLocaleString()} | trained: 0\n\n`);
   await typeText("=".repeat(64) + "\n");

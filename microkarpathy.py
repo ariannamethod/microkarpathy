@@ -595,11 +595,8 @@ def autopsy(prompt, vocab_path='microkarpathy.txt'):
     chambers = KuramotoChambers()
 
     # ── HEADER ──────────────────────────────────────────────────
-    print("\u2554" + "\u2550" * 62 + "\u2557")
-    print("\u2551  MICROKARPATHY \u2014 Prompt Autopsy Without Weights" +
-          " " * 14 + "\u2551")
-    print("\u255a" + "\u2550" * 62 + "\u255d")
-    print(f"\n  vocab: {len(words)} words | ghost params: {xf.n_params:,} | trained: 0")
+    print("  MICROKARPATHY — Prompt Autopsy Without Weights")
+    print(f"  vocab: {len(words)} words | ghost params: {xf.n_params:,} | trained: 0")
     print()
 
     # ── ACT I: DISSECTION ───────────────────────────────────────
