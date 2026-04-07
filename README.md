@@ -12,8 +12,9 @@ named after Andrej Karpathy, whose [microgpt.py](https://gist.github.com/karpath
 
 ### 1: An Educational Example
 
-´microKarpathy' loves to explain but he does it vertically, performing open-heart surgery on the complexity of life.  
-here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell me how to build an llm from scratch" (what else could I ask?!) and got this:  
+´microKarpathy' prefers to explain in a vertical style, because performing open-heart surgery on the complexity of life in this position is much more comfortable and safe than in any other. maybe cause of some other reasons, 'microkarpathy', like all
+of us, has a tendencies.
+here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell me how to build an llm from scratch" (what else could I ask?!), and here's what happens:  
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
