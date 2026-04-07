@@ -18,9 +18,11 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell m
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  MICROKARPATHY — Prompt Autopsy Without Weights              ║
-║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)           ║
+║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)         ║
 ║  zero weights · zero gradients · zero mercy                  ║
 ╚══════════════════════════════════════════════════════════════╝
+
+  vocab: 1396 words | ghost params: 102,656 | trained: 0
 
 ================================================================
   AUTOPSY REPORT
@@ -29,94 +31,122 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell m
 
   Core words: tell how build llm scratch
 
-  (stopwords "me", "to" — rejected. the rest: your words, unmodified.)
+  Tree [tell]:
+    └─ tell
+       ├─ fitness
+       │  ├─ pressure → structure, selection, system
+       │  ├─ order → structure, system, emergence
+       │  ├─ structure → fitness, pressure, mutation, corpse
+       │  └─ system → order, selection, adaptation, evolution
+       ├─ drumlin
+       │  ├─ glacial → igneous, esker, sedimentary, moraine
+       │  ├─ cirque → glacial, atoll, esker, delta
+       │  └─ parable → fable, parody, myth
+       ├─ stratosphere
+       │  ├─ ionosphere → horizon, heliosphere, magnetosphere
+       │  ├─ firmament → equinox, horizon, solstice
+       │  └─ proportion → equilibrium, polarity, ambiguity
+       └─ damask
+          ├─ muslin → velvet, satin, canvas
+          ├─ lacework → tapestry, embroidery
+          └─ satin → burlap, muslin
 
-  Tree [stratosphere]:
-    └─ stratosphere
-       ├─ ionosphere
-       │  ├─ ferment → yeast, bacteria, mold
-       │  ├─ magnetosphere → firmament, heliosphere
-       │  └─ horizon → equinox, crystallize
-       ├─ horizon
-       │  ├─ firmament → nadir, magnetosphere
-       │  ├─ equinox → meridian, solstice, zenith
-       │  └─ metamorphic → pyroclast, igneous, sedimentary
-       └─ magnetosphere
-          ├─ yeast → bacteria, mold, heliosphere
-          └─ leaven → fungus, mold
+  Tree [how]:
+    └─ how
+       ├─ diminuendo
+       │  ├─ pianissimo → staccato, fortissimo
+       │  ├─ pitch → chord, sigh, crescendo, silence
+       │  ├─ tone → chord, pitch, silence
+       │  └─ fortissimo → staccato, timbre
+       ├─ memorandum
+       │  ├─ dispatch → bulletin, dossier, communique
+       │  ├─ repository → communique, inventory
+       │  └─ bulletin → circular, mandate, memorandum
+       ├─ pastiche
+       │  ├─ parable → allegory, myth, fable
+       │  ├─ satire → nemesis, pathos
+       │  └─ parody → irony, allegory
+       └─ duodenum
+          ├─ cecum → cadaver, corpse, rot, embedding
+          ├─ corpse → rot, cadaver, structure
+          └─ coccyx → ileum, jejunum, sacrum, deduce
 
-  Tree [monolith]:
-    └─ monolith
-       ├─ pedestal
-       │  ├─ menhir → barrow, dolmen, obelisk
-       │  ├─ cairn → barrow, ziggurat
-       │  └─ plinth → alcove, obelisk
-       ├─ dolmen
-       │  ├─ pedestal → plinth, chaos
-       │  ├─ obelisk → niche, atrium
-       │  └─ phoneme → semantics, lexicon, syntax, grammar
-       └─ menhir
-          ├─ pyramid → mausoleum, cenotaph
-          └─ ziggurat → cairn, tumulus
+  Tree [build]:
+    └─ build
+       ├─ tannin
+       │  ├─ vinegar → brine, curd, create
+       │  ├─ whey → tripe, alkaloid, gelatin, rennet
+       │  ├─ build → vinegar, engineer, alkaloid
+       │  └─ alkaloid → create, tannin, design, wreck
+       ├─ brine
+       │  ├─ rennet → whey, sweetbread, carcinoma
+       │  ├─ build → tannin, alkaloid, vinegar
+       │  ├─ tannin → alkaloid, rennet, design, create
+       │  └─ endemic → pandemic, vector, morbidity
+       ├─ alkaloid
+       │  ├─ design → vinegar, fabricate, engineer
+       │  ├─ build → whey, engineer, create, design
+       │  └─ create → brine, design, engineer, fabricate
+       └─ vinegar
+          ├─ create → engineer, build, design
+          ├─ brine → whey, curd, rennet
+          └─ grammar → language, syntax, rhetoric
 
-  Tree [pollen]:
-    └─ pollen
-       ├─ stem
-       │  ├─ root → spore, thorn, lichen
-       │  ├─ bark → petal, resin
-       │  └─ seed → sap, mycelium
-       ├─ lichen
-       │  ├─ coral → obsidian, moss, amber
-       │  ├─ mycelium → seed
-       │  └─ quartz → glacier, amber, granite, obsidian
-       └─ moss
-          ├─ basalt → obsidian, glacier, amber
-          └─ coral → spore, lichen
+  Tree [llm]:
+    └─ llm
+       ├─ sign
+       │  ├─ meaning → sign, speech, symbol, language
+       │  ├─ space → energy, cipher, time, message
+       │  ├─ message → force, time, cipher, gravity
+       │  └─ oxidize → blacken, bleach, fossilize
+       ├─ cecum
+       │  ├─ jejunum → corpse, ileum, rot
+       │  ├─ decay → wither, rot, cadaver
+       │  └─ duodenum → cecum, corpse, jejunum
+       ├─ gravel
+       │  ├─ sand → pebble, humus, understory
+       │  ├─ stalactite → stalagmite, geode, agate
+       │  └─ conflict → tactics, strategy, siege
+       └─ prolapsed
+          ├─ herniated → perforated, fenestrated, collapsed
+          ├─ invaginated → fistulous, taut, distended
+          └─ distended → taut, limp, invaginated
 
-  Tree [desiccated]:
-    └─ desiccated
-       ├─ tenacious
-       │  ├─ resilient → plastic, rigid, macerated
-       │  ├─ elastic → stiff, rigid, tribunal
-       │  └─ macerated → turgid, friable, flaccid
-       ├─ fluctuant
-       │  ├─ inflamed → purulent, crepitant, indurated
-       │  ├─ necrotic → gangrenous, purulent
-       │  └─ gangrenous → inflamed, oleaginous
-       └─ turgid
-          ├─ indurated → crepitant, flaccid
-          └─ terminal → vertex, baseline, kerning
+  Tree [scratch]:
+    └─ scratch
+       ├─ dialect
+       │  ├─ prefix → narrative, etymology, inflection
+       │  ├─ narrative → couplet, sonnet, prose
+       │  ├─ sonnet → stanza, prose, discourse
+       │  └─ idiom → prose, dialect, prefix, declension
+       ├─ system
+       │  ├─ adaptation → evolution, birth, fitness
+       │  ├─ fitness → adaptation, selection, evolution, structure
+       │  ├─ complexity → cycle, system, order, truth
+       │  └─ monolith → barrow, menhir, obelisk, pedestal
+       ├─ twilight
+       │  ├─ nadir → equinox, dawn, dusk, horizon
+       │  ├─ dusk → precipitation, twilight, dawn, aurora
+       │  └─ sublimation → miasma, dawn, dusk
+       └─ sterilize
+          ├─ disinfect → administer, swab, titrate
+          ├─ retract → incise, classify
+          └─ meridian → nadir, horizon, ionosphere, firmament
 
-  Tree [filtration]:
-    └─ filtration
-       ├─ precipitate
-       │  ├─ suspension → titration, emulsion, solution
-       │  ├─ pestle → mortar, flask, alembic
-       │  └─ endoscope → bronchoscope, laryngoscope
-       ├─ chromatography
-       │  ├─ electrolysis → sentence, spectroscopy, paragraph
-       │  ├─ paragraph → sentence, phrase, word
-       │  └─ sentence → electrolysis, bone
-       └─ suspension
-          ├─ catalyst → solution, flask, pestle
-          └─ titration → emulsion, chromatography
-
-  Collected 149 unique leaves
+  Collected 200 unique leaves
 
   ── CORPSE ─────────────────────────────────────────
-  when tumulus dawn, elastic forgets barrow.
-  tenacious resilient elastic plastic rigid stiff
-  menhir cairn barrow tumulus ziggurat pyramid dawn zenith.
+  precipitation pebble shroud until magnetosphere consumes.
 
   ── CODA ──────────────────────────────────────────
-  Barrow, elastic — plastic, dawn — menhir, cairn — tumulus,
-  Rigid, stiff — resilient, zenith — ziggurat, pyramid — tenacious.
+  Precipitation, pebble — aurora, shroud — embalm, dawn — ambiguity,
+  Magnetosphere, heliosphere — dusk, sublimation — carcinoma, ionosphere — tuberosity.
 
-  chambers: VOID:0.20 CMPLX:0.13
+  chambers: VOID:0.30 CMPLX:0.08
 
   ── METRICS ────────────────────────────────────────
-  Phonetic Diversity: [###############.....] 0.786
-  Mutation Depth:     [#########...........] 0.466
+  Phonetic Diversity: [##############......] 0.714
+  Mutation Depth:     [############........] 0.625
 
   Vocabulary: 1396 | Prophecies: 8 active | Trauma: 0.529
 
@@ -193,7 +223,7 @@ the coda is named after the musical term (the concluding passage) and is definit
 microkarpathy.py     701 lines   Python autopsy engine, Dario Equation,
                                  ghost transformer, Kuramoto chambers,
                                  MetaWeights, mutation trees, coda
-microkarpathy.txt    1170 lines  1135 words in 18 semantic categories
+microkarpathy.txt    1170 lines  1396 words in 34 semantic categories
                                  (the vocabulary IS the embedding space)
 microkarpathy.html   ~1240 lines browser inference with CRT terminal
                                  (same engine ported to JavaScript)
