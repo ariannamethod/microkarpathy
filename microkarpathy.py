@@ -365,18 +365,11 @@ def nearest_vocab(word, words, embeds):
 def dissect(prompt, vocab_set, words, embeds):
     tokens = prompt.lower().split()
     tokens = [t.strip('.,!?;:"\'-()[]') for t in tokens]
-    tokens = [t for t in tokens if t and t not in STOPS and len(t) > 2]
-    core = []
-    for t in tokens:
-        if t in vocab_set:
-            core.append(t)
-        else:
-            # word not in vocab — find nearest corpse in the morgue
-            core.append(nearest_vocab(t, words, embeds))
-    if not core: core = [words[0]]
-    # deduplicate preserving order
+    tokens = [t for t in tokens if t and t not in STOPS and len(t) > 1]
+    # keep original words — don't remap. the autopsy dissects YOU, not a proxy.
+    if not tokens: tokens = [words[0]]
     seen = set()
-    core = [w for w in core if not (w in seen or seen.add(w))]
+    core = [w for w in tokens if not (w in seen or seen.add(w))]
     return core[:5]
 
 # ═══════════════════════════════════════════════════════════════════
@@ -388,7 +381,13 @@ def find_neighbors(word, words, meta, embeds, n=TREE_WIDTH):
     20% chance of jumping to a random distant word — cross-pollination
     is what makes the corpse interesting."""
     wid = meta.w2i.get(word)
-    if wid is None: return random.sample(words, min(n, len(words)))
+    if wid is None:
+        # OOV word: hash cosine against full vocab (blind but deterministic)
+        vec = hash_embed(word)
+        scored = [(cosine_sim(vec, embeds[w]), w) for w in words]
+        scored.sort(reverse=True)
+        top = [w for _, w in scored[:n * 2]]
+        return random.sample(top, min(n, len(top)))
 
     # teleport: one in five neighbors comes from a distant category
     n_local = n
