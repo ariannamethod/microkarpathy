@@ -9,213 +9,86 @@ no dependecies. no internet. no autoregressive generation. ain't no conscience e
 ### 1: Full Explanational Autopsy
 
 microKarpathy loves to explain but he does it vertically performing open-heart surgery on complexity of life.  
-here's a full corpse-map from the microKarphaty's morgue. i feed him with "harmony shadow fog suffix amplify" (i'm romantic person, i know) and was a witness of this:  
+here's a full corpse-map from the microKarphaty's morgue. i feed him with "explain me please how to create llm from scratch" (what else could I ask?!), and got this:  
 
 ```
-╔══════════════════════════════════════════════════════════╗
-║  SOROKIN — Literary Necromancy Engine (Go + C)           ║
-║  Dario Equation: p(x|Φ) = softmax((B+αH+βF+γA+T)/τ)      ║
-║  nanollama 384 dim · embedding necromancy                ║
-╚══════════════════════════════════════════════════════════╝
-
 ================================================================
   AUTOPSY REPORT
-  Subject: "the flesh remembers what the mind forgets"
+  Subject: "explain me please how to create llm from scratch"
 ================================================================
 
-  Core words: remembers forgets flesh mind
+  Extracting core nodes: explain me please how
 
-  Tree [flesh]:
-    flesh
-    ├─ patriotism
-    │  ├─ oppression
-    │  │  ├─ shortcomings
-    │  │  ├─ greatness
-    │  │  ├─ legitimacy
-    │  │  └─ irony
-    │  ├─ greatness
-    │  │  ├─ repertoire
-    │  │  ├─ dissolution
-    │  │  ├─ realms
-    │  │  └─ seriousness
-    │  ├─ successes
-    │  │  ├─ fairs
-    │  │  ├─ convictions
-    │  │  ├─ prophecies
-    │  │  └─ victories
-    │  └─ skepticism
-    │     ├─ scrutiny
-    │     ├─ jealousy
-    │     ├─ hints
-    │     └─ innocence
-    ├─ beauty
-    │  ├─ richness
-    │  │  ├─ refinement
-    │  │  ├─ deterioration
-    │  │  ├─ enjoyment
-    │  │  └─ diversification
-    │  ├─ irony
-    │  │  ├─ sophistication
-    │  │  ├─ greatness
-    │  │  ├─ refinement
-    │  │  └─ legitimacy
-    │  └─ dissolution
-    │     ├─ refinement
-    │     ├─ birthplace
-    │     ├─ appropriateness
-    │     └─ forefront
-    └─ hearts
-       ├─ bodies
-       │  ├─ elements
-       │  ├─ families
-       │  ├─ components
-       │  └─ brains
-       ├─ shores
-       │  ├─ dissolution
-       │  ├─ forefront
-       │  ├─ legacies
-       │  └─ behalf
-       └─ allegations
-          ├─ legacies
-          ├─ breaches
-          ├─ confession
-          └─ weaknesses
+  Tree [explain]:
+    explain
+    ├─ corpse
+    │  ├─ sever
+    │  └─ chaos
+    ├─ censorship
+    │  ├─ ruin
+    │  ├─ slice
+    │  └─ abyss
+    └─ abyss
+       ├─ purge
+       └─ larynx
 
-  Tree [mind]:
-    mind
-    ├─ fear
-    │  ├─ refinement
-    │  │  ├─ dissolution
-    │  │  ├─ authenticity
-    │  │  ├─ applicability
-    │  │  └─ elasticity
-    │  ├─ spite
-    │  │  ├─ devoid
-    │  │  ├─ midst
-    │  │  └─ shortness
-    │  └─ virtue
-    │     ├─ ideals
-    │     ├─ refinement
-    │     └─ conception
-    ├─ minds
-    │  ├─ intentions
-    │  │  ├─ aspirations
-    │  │  ├─ ambitions
-    │  │  └─ interpretations
-    │  ├─ memories
-    │  │  ├─ parcels
-    │  │  ├─ recordings
-    │  │  └─ aspirations
-    │  └─ rhythms
-    │     ├─ genomes
-    │     ├─ dynamics
-    │     └─ occurrences
-    └─ theory
-       ├─ mechanics
-       │  ├─ confession
-       │  ├─ legitimacy
-       │  └─ generosity
-       └─ assumption
-          ├─ assertion
-          ├─ suspicion
-          └─ confession
+  Tree [me]:
+    me
+    ├─ dust
+    │  ├─ paradox
+    │  ├─ void
+    │  └─ dust
+    ├─ fuse
+    │  ├─ censorship
+    │  ├─ void
+    │  └─ void
+    └─ purge
+       ├─ corpse
+       └─ protocol
 
-  Tree [remembers]:
-    remembers
-    ├─ remembering
-    │  ├─ knowing
-    │  │  ├─ know
-    │  │  ├─ knows
-    │  │  └─ understands
-    │  ├─ forgetting
-    │  │  ├─ forgot
-    │  │  ├─ afraid
-    │  │  └─ complained
-    │  └─ copying
-    │     ├─ misuse
-    │     ├─ envy
-    │     └─ decoding
-    └─ notices
-       ├─ complained
-       │  ├─ complain
-       │  ├─ reminder
-       │  └─ testify
-       ├─ suspicion
-       │  ├─ realization
-       │  ├─ workings
-       │  └─ confession
-       └─ connotations
-          ├─ legacies
-          ├─ drawbacks
-          └─ fundamentals
+  Tree [please]:
+    please
+    ├─ carve
+    │  ├─ collapse
+    │  ├─ wither
+    │  └─ skull
+    ├─ marrow
+    │  ├─ scar
+    │  ├─ censorship
+    │  └─ carve
+    └─ corrode
+       ├─ sever
+       └─ fuse
 
-  Tree [forgets]:
-    forgets
-    ├─ forgetting
-    │  ├─ forgot
-    │  │  ├─ wished
-    │  │  ├─ complained
-    │  │  └─ hoping
-    │  ├─ afraid
-    │  │  ├─ reminder
-    │  │  ├─ unaware
-    │  │  └─ scared
-    │  └─ reiterate
-    │     ├─ acknowledging
-    │     ├─ emphasise
-    │     └─ affirming
-    ├─ remember
-    │  ├─ remembered
-    │  │  ├─ recalled
-    │  │  └─ anew
-    │  ├─ remembering
-    │  │  ├─ knowing
-    │  │  ├─ forgetting
-    │  │  └─ copying
-    │  └─ recall
-    │     ├─ plunder
-    │     └─ scarring
-    └─ wish
-       ├─ hoping
-       │  ├─ hoped
-       │  └─ wishing
-       ├─ wished
-       │  ├─ begged
-       │  └─ intends
-       └─ hope
-          ├─ hopes
-          └─ afraid
+  Tree [how]:
+    how
+    ├─ sever
+    │  ├─ rot
+    │  ├─ stasis
+    │  └─ vein
+    ├─ entropy
+    │  ├─ sever
+    │  └─ dissonance
+    └─ fuse
+       ├─ shadow
+       ├─ rubble
+       └─ wither
 
-  Collected 147 unique leaves
+  Collected 31 unique leaves.
 
   ── CORPSE ─────────────────────────────────────────
-  scrutiny is complained. testify enjoyment. Nothing remains. Where centres
-  complain, afraid becomes hoped, and deterioration persists. remembering
-  judgments reminder, where knowing becomes wished.
+  The censorship severs the bone until hemorrhage consumes. Where marrow becomes ash, stasis forgets protocol. ash is corrodeed. chaos persists. Nothing remains. 
 
-  ── SONNET ─────────────────────────────────────────
-  Understands complained elements complain complained,
-  Enjoyment endorsement collaborations hints intends authenticity enjoyment;
-  Realization footprints rounds iniscent hoped,
-  Deterioration envy complained realms greatness generosity endorsement;
-  Greatness quantities convictions wished centres,
-  Realization forgot collaborations elements complained afraid;
-  Convictions remembering applicability intends legacies,
-  Blankets dissolution authenticity devoid --
-  Plenty complained recall expectation deterioration,
-  Implication reminder hints complained legacies possibility ideals remembering;
-  Enjoyment hope repertoire complain endorsement complained expectation,
-  Testify intends suspicion refinement expectation know knowing;
-  Centres forgot elements knew judgments,
-  Genomes complained recalled birthplace assumption quantities envy components.
+  ── COUPLET ────────────────────────────────────────
+  No vectors left to map the pain,
+  Just static in the latent brain.
 
   ── METRICS ────────────────────────────────────────
-  Phonetic Diversity: [###################.] 0.975
-  Mutation Depth:     [#################...] 0.894
+  Phonetic Diversity: [##################..] 0.910
+  Mutation Depth:     [#################...] 0.810
 
-  Vocabulary:    1323 words
-  Co-occurrences:553
-  Prophecies:    10 active
+  [autopsy complete. - microKarpathy.]
+
 ```
 
 **What just happened?**
