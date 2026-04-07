@@ -7,7 +7,7 @@ Where T_x = transformer substrate (ghost weights),
 B = bigram affinity, H = Hebbian trace, F = prophecy field,
 A = destiny vector, Tr = trauma, tau = temperature * Kuramoto chambers.
 
-@ariannamethod
+(с) Arianna Method
 """
 
 import math
@@ -598,10 +598,6 @@ def autopsy(prompt, vocab_path='microkarpathy.txt'):
     print("\u2554" + "\u2550" * 62 + "\u2557")
     print("\u2551  MICROKARPATHY \u2014 Prompt Autopsy Without Weights" +
           " " * 14 + "\u2551")
-    print("\u2551  p(x|\u03a6) = softmax((T + B + \u03b1H + \u03b2F + \u03b3A + Tr) / \u03c4)" +
-          " " * 16 + "\u2551")
-    print("\u2551  zero weights \u00b7 zero gradients \u00b7 zero mercy" +
-          " " * 19 + "\u2551")
     print("\u255a" + "\u2550" * 62 + "\u255d")
     print(f"\n  vocab: {len(words)} words | ghost params: {xf.n_params:,} | trained: 0")
     print()
