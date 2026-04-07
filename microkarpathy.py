@@ -340,12 +340,25 @@ class KuramotoChambers:
 # DISSECTION — strip the prompt to bone
 # ═══════════════════════════════════════════════════════════════════
 
+def char_bigrams(word):
+    return set(word[i:i+2] for i in range(len(word) - 1)) if len(word) > 1 else {word}
+
 def nearest_vocab(word, words, embeds):
-    """Find nearest vocab word by hash embedding. The morgue always has a match."""
-    vec = hash_embed(word)
-    best, best_s = words[0], -2
+    """Find nearest vocab word by character similarity. Not hash — meaning."""
+    wb = char_bigrams(word)
+    best, best_s = words[0], -1
     for w in words:
-        s = cosine_sim(vec, embeds[w])
+        # Jaccard on character bigrams: shared / total
+        wvb = char_bigrams(w)
+        inter = len(wb & wvb)
+        union = len(wb | wvb)
+        s = inter / union if union > 0 else 0
+        # bonus for shared prefix
+        pref = 0
+        for a, b in zip(word, w):
+            if a == b: pref += 1
+            else: break
+        s += pref * 0.15
         if s > best_s: best, best_s = w, s
     return best
 
