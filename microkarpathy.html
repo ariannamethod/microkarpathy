@@ -1,156 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>microKarpathy: educational prompt autopsy</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>microKarpathy — educational prompt autopsy</title>
 <style>
-    :root {
-        --term-bg: #050505;
-        --term-fg: #00ff41;
-        --blood: #ff003c;
-        --bone: #aaaaaa;
-    }
-    body {
-        background-color: var(--term-bg);
-        color: var(--term-fg);
-        font-family: 'Courier New', Courier, monospace;
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-    }
-    /* CRT Scanline effect */
-    body::after {
-        content: " ";
-        display: block;
-        position: fixed;
-        top: 0; left: 0; bottom: 0; right: 0;
-        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-        z-index: 2;
-        background-size: 100% 2px, 3px 100%;
-        pointer-events: none;
-    }
-    #console {
-        flex-grow: 1;
-        padding: 20px;
-        padding-bottom: 100px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font-size: 15px;
-        line-height: 1.5;
-        text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
-    }
-    .blood { color: var(--blood); text-shadow: 0 0 8px rgba(255, 0, 60, 0.6); }
-    .bone { color: var(--bone); text-shadow: 0 0 5px rgba(170, 170, 170, 0.4); }
-    .signature { color: var(--blood); font-style: italic; margin-top: 20px; font-weight: bold; }
-    #input-container {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: #000;
-        border-top: 2px solid var(--term-fg);
-        display: flex;
-        padding: 15px;
-        box-sizing: border-box;
-        z-index: 10;
-        box-shadow: 0 -5px 15px rgba(0, 255, 65, 0.1);
-    }
-    input[type="text"] {
-        flex-grow: 1;
-        background: transparent;
-        border: none;
-        color: var(--term-fg);
-        font-family: inherit;
-        font-size: 16px;
-        outline: none;
-        text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
-    }
-    input[type="text"]::placeholder { color: rgba(0, 255, 65, 0.3); }
-    button {
-        background: var(--blood);
-        color: #fff;
-        border: 1px solid #fff;
-        padding: 10px 25px;
-        font-family: inherit;
-        font-weight: bold;
-        cursor: pointer;
-        text-transform: uppercase;
-        margin-left: 15px;
-        box-shadow: 0 0 10px rgba(255, 0, 60, 0.4);
-        transition: all 0.1s;
-    }
-    button:hover { background: #fff; color: var(--blood); border-color: var(--blood); }
-    button:disabled { background: #333; color: #666; border-color: #333; cursor: not-allowed; box-shadow: none;}
-    .cursor { display: inline-block; width: 10px; height: 16px; background: var(--term-fg); animation: blink 1s step-end infinite; vertical-align: middle; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #000; }
-    ::-webkit-scrollbar-thumb { background: var(--term-fg); }
-    #file-label { color: rgba(0,255,65,0.3); font-size: 11px; cursor: pointer; margin-left: 10px; line-height: 38px; }
-    #file-label:hover { color: var(--term-fg); }
-    #file-input { display: none; }
+:root{
+  --bg:#050505;
+  --fg:#00ff41;
+  --blood:#ff003c;
+  --bone:#a9a9a9;
+  --muted:rgba(0,255,65,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:"Courier New", Courier, monospace;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body::after{
+  content:"";
+  position:fixed; inset:0;
+  background:
+    linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,.24) 50%),
+    linear-gradient(90deg, rgba(255,0,0,.05), rgba(0,255,0,.018), rgba(0,0,255,.05));
+  background-size:100% 2px, 3px 100%;
+  pointer-events:none;
+  z-index:2;
+}
+#console{
+  flex:1;
+  overflow:auto;
+  padding:18px 18px 110px 18px;
+  white-space:pre-wrap;
+  line-height:1.48;
+  font-size:14px;
+  text-shadow:0 0 5px rgba(0,255,65,.32);
+}
+#inputbar{
+  position:fixed; left:0; right:0; bottom:0;
+  display:flex; gap:10px; align-items:center;
+  padding:14px;
+  border-top:2px solid var(--fg);
+  background:#000;
+  z-index:10;
+  box-shadow:0 -5px 14px rgba(0,255,65,.1);
+}
+#prompt{
+  flex:1;
+  background:transparent;
+  color:var(--fg);
+  border:none;
+  outline:none;
+  font:inherit;
+  font-size:16px;
+  text-shadow:0 0 5px rgba(0,255,65,.32);
+}
+#prompt::placeholder{color:var(--muted)}
+button{
+  background:var(--blood);
+  color:#fff;
+  border:1px solid #fff;
+  font:inherit;
+  font-weight:bold;
+  text-transform:uppercase;
+  padding:10px 18px;
+  cursor:pointer;
+  box-shadow:0 0 10px rgba(255,0,60,.38);
+}
+button:hover{background:#fff;color:var(--blood);border-color:var(--blood)}
+button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+#file-label{
+  font-size:11px; color:var(--muted); cursor:pointer; user-select:none;
+}
+#file-label:hover{color:var(--fg)}
+#file-input{display:none}
+.blood{color:var(--blood); text-shadow:0 0 8px rgba(255,0,60,.55)}
+.bone{color:var(--bone); text-shadow:0 0 5px rgba(170,170,170,.35)}
+.signature{color:var(--blood); font-style:italic; font-weight:bold}
+.cursor{
+  display:inline-block; width:10px; height:16px;
+  background:var(--fg); vertical-align:middle;
+  animation:blink 1s step-end infinite;
+}
+@keyframes blink{50%{opacity:0}}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:#000}
+::-webkit-scrollbar-thumb{background:var(--fg)}
 </style>
 </head>
 <body>
-
 <div id="console"><span class="cursor"></span></div>
-
-<div id="input-container">
-    <span style="margin-right: 10px; font-size: 16px; line-height: 38px;">></span>
-    <input type="text" id="prompt" placeholder="Ready for educational autopsy..." autocomplete="off" spellcheck="false">
-    <button id="btn" onclick="startAutopsy()">Dissect</button>
-    <label id="file-label" for="file-input">load .txt</label>
-    <input type="file" id="file-input" accept=".txt" onchange="loadVocabFile(event)">
+<div id="inputbar">
+  <span>&gt;</span>
+  <input id="prompt" type="text" autocomplete="off" spellcheck="false" placeholder="ready for educational autopsy..." />
+  <button id="btn">Dissect</button>
+  <label id="file-label" for="file-input">load .txt</label>
+  <input id="file-input" type="file" accept=".txt" />
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════
-// microKarpathy — Educational Prompt Autopsy Without Weights
-// Dario Equation: p(x|Phi) = softmax((B + aH + bF + gA + T) / tau)
-// Real inference. Zero training. CRT terminal.
-// ═══════════════════════════════════════════════════════════════════
+/* microKarpathy HTML inference
+   unified as closely as possible with the Python version:
+   - same constants
+   - same seed corpus
+   - same FNV-1a hash embeddings
+   - same order-based + seed-corpus MetaWeights
+   - same ghost transformer substrate
+   - same Dario sampling logic
+   - same mutation tree shape
+   - same Brodsky-style coda formatting
 
-const DIM = 16;
-const TREE_WIDTH = 3;
-const TREE_DEPTH = 2;
-const CORPSE_LEN = 12;
-const TOP_K = 6;
-const ALPHA_D = 0.30;
-const BETA_D = 0.15;
-const GAMMA_D = 0.25;
+   browser limits still exist:
+   - no filesystem corpus state
+   - no persistent REPL memory unless you extend it
+   - default embedded vocab can be replaced by loading microkarpathy.txt
+*/
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS — matched to Python version
+// ═══════════════════════════════════════════════════════════════════
+const DIM = 32;
+const N_LAYER = 1;
+const N_HEAD = 4;
+const HEAD_DIM = DIM / N_HEAD;
+const BLOCK_SIZE = 32;
+
+const TREE_WIDTH = 4;
+const TREE_DEPTH = 3;
+const CORPSE_LEN = 14;
+const TOP_K = 8;
+
+const ALPHA_D  = 0.30;
+const BETA_D   = 0.15;
+const GAMMA_D  = 0.25;
 const TAU_BASE = 0.85;
 const BIGRAM_W = 2.0;
+
 const CHAMBERS = ['FEAR','LOVE','RAGE','VOID','FLOW','CMPLX'];
-const CHAMBER_DECAY = [0.90, 0.93, 0.85, 0.97, 0.88, 0.94];
+const CHAMBER_DECAY = [0.90,0.93,0.85,0.97,0.88,0.94];
 const CROSSFIRE_K = 0.02;
-const STOPS = new Set("the a an is are was were be been being have has had do does did will would shall should may might can could and but or nor for yet so in on at to of by with from what that this it i you he she we they my his her its our your their me him us them not no very just also only".split(" "));
+const CROSSFIRE_ITER = 5;
 
 const TEMPLATES = [
-    "{0} {1} {2}, where {3} becomes {4}.",
-    "{0} is {1}. {2} {3}. nothing remains.",
-    "when {0} {1}, {2} forgets {3}.",
-    "{0} {1} {2} until {3} consumes.",
-    "where {0} {1}, {2} becomes {3}, and {4} persists.",
-    "through {0}, {1} {2} {3}. darkness remains.",
+  "{0} {1} {2}, where {3} becomes {4}.",
+  "{0} is {1}. {2} {3}. nothing remains.",
+  "when {0} {1}, {2} forgets {3}.",
+  "{0} {1} {2} until {3} consumes.",
+  "where {0} {1}, {2} becomes {3}, and {4} persists.",
+  "through {0}, {1} {2} {3}. darkness remains.",
 ];
 
-const CAT_CHAMBER = {
-    'body / anatomy':0, 'decay / death':3, 'medical / autopsy':0,
-    'language / text / structure':4, 'transformation / process':4,
-    'abstract / philosophy':5, 'nature / material':4, 'action verbs':2,
-    'texture / quality':5, 'emotion / state':1, 'sound / music':4,
-    'architecture / space':5, 'tools / instruments':2,
-    'soviet / bureaucratic':3, 'fabric / material':4,
-    'chemistry / elements':5, 'weather / atmosphere':3, 'food / organic':2,
+const SEED_CORPUS = (
+  "bone becomes sentence and sentence becomes dust on the table. " +
+  "the scalpel finds not meaning but the absence where meaning refused. " +
+  "mutation is not error it is the only honest response to a dishonest structure. " +
+  "every reassembly is a resurrection that fails beautifully. " +
+  "the corpse speaks in fragments and each fragment opens into a wall. " +
+  "what the autopsy reveals is that language was already dead before we spoke. " +
+  "organs of grammar are weighed measured and found insufficient. " +
+  "the tree grows downward into darkness and its leaves forgot their roots."
+);
+
+const STOPS = new Set(
+  "the a an is are was were be been being have has had do does did will would " +
+  "shall should may might can could and but or nor for yet so in on at to of by " +
+  "with from what that this it i you he she we they my his her its our your their " +
+  "me him us them not no very just also only"
+  .split(/\s+/)
+);
+
+const VERB_CATS = new Set(['action verbs', 'transformation / process']);
+
+const CAT_TO_CHAMBER = {
+  'body / anatomy': 0, 'decay / death': 3, 'medical / autopsy': 0,
+  'language / text / structure': 4, 'transformation / process': 4,
+  'abstract / philosophy': 5, 'nature / material': 4, 'action verbs': 2,
+  'texture / quality': 5, 'emotion / state': 1, 'sound / music': 4,
+  'architecture / space': 5, 'tools / instruments': 2,
+  'soviet / bureaucratic': 3, 'fabric / material': 4,
+  'chemistry / elements': 5, 'weather / atmosphere': 3, 'food / organic': 2,
 };
 
-// ═══ EMBEDDED VOCABULARY (same as microkarpathy.txt) ═══
-const DEFAULT_VOCAB = `# body / anatomy
+// ═══════════════════════════════════════════════════════════════════
+// DEFAULT VOCAB — replace by loading microkarpathy.txt for full body
+// ═══════════════════════════════════════════════════════════════════
+const DEFAULT_VOCAB = String.raw`# body / anatomy
 bone
 flesh
 skin
@@ -774,463 +813,736 @@ brine
 vinegar
 alkaloid`;
 
-// ═══ PARSE VOCABULARY ═══
-function parseVocab(text) {
-    const words = [], cats = {};
-    let cat = 'uncategorized';
-    for (const line of text.split('\n')) {
-        const t = line.trim();
-        if (!t) continue;
-        if (t.startsWith('#')) {
-            cat = t.slice(1).trim().toLowerCase();
-            cats[cat] = [];
-            continue;
-        }
-        const w = t.toLowerCase();
-        if (w && !words.includes(w)) {
-            words.push(w);
-            if (!cats[cat]) cats[cat] = [];
-            cats[cat].push(w);
-        }
+// ═══════════════════════════════════════════════════════════════════
+// PARSER / HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function parseVocab(text){
+  const words = [];
+  const cats = {};
+  let cat = 'uncategorized';
+  const seen = new Set();
+  for(const rawLine of text.split('\n')){
+    const line = rawLine.trim();
+    if(!line) continue;
+    if(line.startsWith('#')){
+      cat = line.slice(1).trim().toLowerCase();
+      cats[cat] = cats[cat] || [];
+      continue;
     }
-    return { words, cats };
+    const w = line.toLowerCase().trim();
+    if(w && !seen.has(w)){
+      seen.add(w);
+      words.push(w);
+      cats[cat] = cats[cat] || [];
+      cats[cat].push(w);
+    }
+  }
+  return {words, cats};
 }
 
-// ═══ HASH EMBEDDING (FNV-1a) ═══
-function hashEmbed(word) {
-    let h = 2166136261;
-    for (let i = 0; i < word.length; i++) {
-        h ^= word.charCodeAt(i);
-        h = Math.imul(h, 16777619) >>> 0;
-    }
-    const vec = [];
-    for (let i = 0; i < DIM; i++) {
-        h ^= h >>> 13; h = Math.imul(h, 1597334677) >>> 0; h ^= h >>> 16;
-        vec.push((h & 0xFFFF) / 32768.0 - 1.0);
-    }
-    const norm = Math.sqrt(vec.reduce((s, x) => s + x * x, 0)) + 1e-10;
-    return vec.map(x => x / norm);
+function wordToCat(word, cats){
+  for(const [cat, ws] of Object.entries(cats)){
+    if(ws.includes(word)) return cat;
+  }
+  return null;
 }
 
-function cosSim(a, b) {
+function charBigrams(word){
+  const out = new Set();
+  if(word.length <= 1){
+    out.add(word);
+    return out;
+  }
+  for(let i=0;i<word.length-1;i++) out.add(word.slice(i,i+2));
+  return out;
+}
+
+// FNV-1a hash embedding, matched conceptually to Python version
+function hashEmbed(word){
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<word.length;i++){
+    h ^= word.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const vec = [];
+  for(let i=0;i<DIM;i++){
+    h ^= h >>> 13;
+    h = Math.imul(h, 1597334677) >>> 0;
+    h ^= h >>> 16;
+    vec.push((h & 0xFFFF) / 32768.0 - 1.0);
+  }
+  const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+  return vec.map(x => x / norm);
+}
+
+function cosineSim(a,b){
+  let s = 0;
+  for(let i=0;i<a.length;i++) s += a[i]*b[i];
+  return s;
+}
+
+function softmaxVec(logits){
+  const mx = Math.max(...logits);
+  const exps = logits.map(v => Math.exp(v - mx));
+  const total = exps.reduce((a,b)=>a+b,0) + 1e-10;
+  return exps.map(e => e/total);
+}
+
+function rmsnorm(x){
+  const ms = x.reduce((s,v)=>s+v*v,0) / Math.max(x.length,1);
+  const scale = 1 / Math.sqrt(ms + 1e-5);
+  return x.map(v => v * scale);
+}
+
+function phonetic(word){
+  let w = word;
+  if(w.length > 3 && w.endsWith('e') && !"aeiou".includes(w[w.length-2])) w = w.slice(0,-1);
+  let lastV = -1;
+  for(let i=0;i<w.length;i++) if("aeiou".includes(w[i])) lastV = i;
+  return lastV >= 0 ? w.slice(lastV) : w.slice(-3);
+}
+function rhymes(a,b){
+  return a !== b && a.length > 2 && b.length > 2 && phonetic(a) === phonetic(b);
+}
+function bar(v){
+  const n = Math.floor(v * 20);
+  return '#'.repeat(n) + '.'.repeat(20 - n);
+}
+function sampleShuffled(arr, n){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a.slice(0,n);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DETERMINISTIC PRNG for ghost transformer weights
+// ═══════════════════════════════════════════════════════════════════
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gaussian(rand, std=1){
+  let u = 0, v = 0;
+  while(u === 0) u = rand();
+  while(v === 0) v = rand();
+  const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2*Math.PI*v);
+  return z * std;
+}
+function makeMatrix(rows, cols, rand, std=0.08){
+  const m = new Array(rows);
+  for(let r=0;r<rows;r++){
+    const row = new Float64Array(cols);
+    for(let c=0;c<cols;c++) row[c] = gaussian(rand, std);
+    m[r] = row;
+  }
+  return m;
+}
+function linear(x, w){
+  const out = new Float64Array(w.length);
+  for(let r=0;r<w.length;r++){
     let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
+    const row = w[r];
+    for(let c=0;c<row.length;c++) s += row[c] * x[c];
+    out[r] = s;
+  }
+  return out;
 }
 
-// ═══ PHONETIC ═══
-function phonetic(word) {
-    let w = word;
-    if (w.length > 3 && w[w.length-1] === 'e' && !'aeiou'.includes(w[w.length-2]))
-        w = w.slice(0, -1);
-    const vowels = 'aeiou';
-    let lastV = -1;
-    for (let i = 0; i < w.length; i++)
-        if (vowels.includes(w[i])) lastV = i;
-    return lastV >= 0 ? w.slice(lastV) : w.slice(-3);
+// ═══════════════════════════════════════════════════════════════════
+// GHOST TRANSFORMER — same architectural spirit as Python version
+// ═══════════════════════════════════════════════════════════════════
+class GhostTransformer {
+  constructor(vocabSize){
+    this.V = vocabSize;
+    const rand = mulberry32(42);
+    this.wte = makeMatrix(vocabSize, DIM, rand, 0.08);
+    this.wpe = makeMatrix(BLOCK_SIZE, DIM, rand, 0.08);
+    this.lmHead = makeMatrix(vocabSize, DIM, rand, 0.08);
+    this.layers = [];
+    for(let i=0;i<N_LAYER;i++){
+      this.layers.push({
+        wq: makeMatrix(DIM, DIM, rand, 0.08),
+        wk: makeMatrix(DIM, DIM, rand, 0.08),
+        wv: makeMatrix(DIM, DIM, rand, 0.08),
+        wo: makeMatrix(DIM, DIM, rand, 0.08),
+        ff1: makeMatrix(4*DIM, DIM, rand, 0.08),
+        ff2: makeMatrix(DIM, 4*DIM, rand, 0.08),
+      });
+    }
+    this.nParams = vocabSize * DIM * 2 + DIM * BLOCK_SIZE + N_LAYER * (4*DIM*DIM + 4*DIM*DIM + DIM*4*DIM);
+  }
+
+  forward(tokenIds, kvCache){
+    const pos = kvCache[0].k.length ? kvCache[0].k.length : 0;
+    const tid = ((tokenIds[tokenIds.length-1] % this.V) + this.V) % this.V;
+
+    let x = new Float64Array(DIM);
+    for(let i=0;i<DIM;i++) x[i] = this.wte[tid][i] + this.wpe[pos % BLOCK_SIZE][i];
+    x = rmsnorm(Array.from(x));
+
+    for(let li=0;li<this.layers.length;li++){
+      const layer = this.layers[li];
+      const xr = x.slice();
+      x = rmsnorm(x);
+
+      const q = Array.from(linear(x, layer.wq));
+      const k = Array.from(linear(x, layer.wk));
+      const v = Array.from(linear(x, layer.wv));
+
+      kvCache[li].k.push(k);
+      kvCache[li].v.push(v);
+
+      const xAttn = [];
+      for(let h=0;h<N_HEAD;h++){
+        const hs = h * HEAD_DIM;
+        const qh = q.slice(hs, hs + HEAD_DIM);
+        const scores = [];
+        for(let t=0;t<kvCache[li].k.length;t++){
+          const kh = kvCache[li].k[t].slice(hs, hs + HEAD_DIM);
+          let dot = 0;
+          for(let j=0;j<HEAD_DIM;j++) dot += qh[j] * kh[j];
+          scores.push(dot / Math.sqrt(HEAD_DIM));
+        }
+        const w = softmaxVec(scores);
+        for(let j=0;j<HEAD_DIM;j++){
+          let val = 0;
+          for(let t=0;t<w.length;t++) val += w[t] * kvCache[li].v[t][hs + j];
+          xAttn.push(val);
+        }
+      }
+
+      let proj = Array.from(linear(xAttn, layer.wo));
+      x = proj.map((v,i) => v + xr[i]);
+
+      const xr2 = x.slice();
+      x = rmsnorm(x);
+      let h1 = Array.from(linear(x, layer.ff1));
+      h1 = h1.map(v => Math.max(0, v));
+      let ff = Array.from(linear(h1, layer.ff2));
+      x = ff.map((v,i) => v + xr2[i]);
+    }
+
+    x = rmsnorm(x);
+    return Array.from(linear(x, this.lmHead));
+  }
 }
 
-function rhymes(a, b) {
-    return a !== b && a.length > 2 && b.length > 2 && phonetic(a) === phonetic(b);
+// ═══════════════════════════════════════════════════════════════════
+// METAWEIGHTS — same logic as Python version
+// ═══════════════════════════════════════════════════════════════════
+class MetaWeights {
+  constructor(words){
+    this.words = words;
+    this.w2i = {};
+    words.forEach((w,i)=>this.w2i[w]=i);
+    this.V = words.length;
+    this.bigram = new Map();
+    this.cooc = new Map();
+    this.prophecy = new Map();
+    this.destiny = new Float64Array(this.V);
+    this.trauma = 0.0;
+    this._buildFromOrdering();
+    this._buildFromCorpus();
+  }
+  _bgKey(a,b){ return `${a},${b}`; }
+  _coKey(a,b){ return `${Math.min(a,b)},${Math.max(a,b)}`; }
+
+  _buildFromOrdering(){
+    for(let i=0;i<this.V;i++){
+      for(let j=Math.max(0, i-5); j<Math.min(this.V, i+6); j++){
+        if(i === j) continue;
+        const decay = 1.0 / (1.0 + Math.abs(i-j));
+        const key = this._coKey(i,j);
+        this.cooc.set(key, (this.cooc.get(key) || 0) + decay);
+        if(j === i+1){
+          const k = this._bgKey(i,j);
+          this.bigram.set(k, (this.bigram.get(k) || 0) + 1.0);
+        }
+      }
+    }
+  }
+
+  _buildFromCorpus(){
+    const corpusWords = SEED_CORPUS.toLowerCase().split(/\s+/)
+      .map(w => w.replace(/[.,!?]/g,''))
+      .filter(w => this.w2i[w] !== undefined);
+    for(let i=0;i<corpusWords.length-1;i++){
+      const a = this.w2i[corpusWords[i]];
+      const b = this.w2i[corpusWords[i+1]];
+      const bg = this._bgKey(a,b);
+      const co = this._coKey(a,b);
+      this.bigram.set(bg, (this.bigram.get(bg) || 0) + 2.0);
+      this.cooc.set(co, (this.cooc.get(co) || 0) + 1.0);
+    }
+  }
+
+  bi(a,b){ return this.bigram.get(this._bgKey(a,b)) || 0.001; }
+  hebb(a,b){ return this.cooc.get(this._coKey(a,b)) || 0.0; }
+  proph(wid){ return this.prophecy.get(wid) || 0.0; }
+  addProphecy(wid, debt=1.0){ this.prophecy.set(wid, this.proph(wid) + debt); }
+  fulfill(wid){ this.prophecy.delete(wid); }
+  updateOnline(prev, curr){
+    const ck = this._coKey(prev,curr);
+    const bk = this._bgKey(prev,curr);
+    this.cooc.set(ck, (this.cooc.get(ck) || 0) + 0.5);
+    this.bigram.set(bk, (this.bigram.get(bk) || 0) + 0.5);
+    this.trauma = Math.min(1.0, this.trauma + 0.05) * 0.97;
+  }
 }
 
-// ═══ ENGINE ═══
+// ═══════════════════════════════════════════════════════════════════
+// KURAMOTO CHAMBERS
+// ═══════════════════════════════════════════════════════════════════
+class KuramotoChambers {
+  constructor(){
+    this.act = CHAMBERS.map(() => Math.random() * 0.2);
+  }
+  excite(word, cats){
+    const cat = wordToCat(word, cats);
+    if(cat && CAT_TO_CHAMBER[cat] !== undefined){
+      const idx = CAT_TO_CHAMBER[cat];
+      this.act[idx] = Math.min(1.0, this.act[idx] + 0.25);
+    }
+  }
+  step(){
+    for(let iter=0; iter<CROSSFIRE_ITER; iter++){
+      const old = [...this.act];
+      for(let i=0;i<this.act.length;i++){
+        this.act[i] *= CHAMBER_DECAY[i];
+        for(let j=0;j<this.act.length;j++){
+          if(i !== j) this.act[i] += CROSSFIRE_K * Math.sin(old[j] - old[i]);
+        }
+        this.act[i] = Math.max(0.0, Math.min(1.0, this.act[i]));
+      }
+    }
+  }
+  tauMod(){
+    return 1.0 + 0.3 * this.act[1] - 0.2 * this.act[2] + 0.15 * this.act[4];
+  }
+  display(){
+    return this.act
+      .map((v,i) => v > 0.08 ? `${CHAMBERS[i]}:${v.toFixed(2)}` : null)
+      .filter(Boolean)
+      .join(' ');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ENGINE
+// ═══════════════════════════════════════════════════════════════════
 class MicroKarpathy {
-    constructor(vocabText) {
-        const { words, cats } = parseVocab(vocabText);
-        this.words = words;
-        this.cats = cats;
-        this.w2i = {};
-        words.forEach((w, i) => this.w2i[w] = i);
-        this.V = words.length;
-        this.embeds = {};
-        words.forEach(w => this.embeds[w] = hashEmbed(w));
-        // MetaWeights
-        this.bigram = {};
-        this.cooc = {};
-        this.prophecy = {};
-        this.destiny = new Float32Array(this.V);
-        this.trauma = 0;
-        this._buildMeta();
-        // Chambers
-        this.chambers = CHAMBERS.map(() => Math.random() * 0.2);
+  constructor(vocabText){
+    const {words, cats} = parseVocab(vocabText);
+    this.words = words;
+    this.cats = cats;
+    this.vocabSet = new Set(words);
+    this.w2i = {};
+    words.forEach((w,i)=>this.w2i[w]=i);
+    this.V = words.length;
+    this.embeds = {};
+    for(const w of words) this.embeds[w] = hashEmbed(w);
+
+    this.meta = new MetaWeights(words);
+    this.chambers = new KuramotoChambers();
+    this.xf = new GhostTransformer(this.V);
+  }
+
+  nearestVocab(word){
+    const wb = charBigrams(word);
+    let best = this.words[0];
+    let bestS = -1;
+    for(const w of this.words){
+      const wv = charBigrams(w);
+      let inter = 0;
+      for(const bg of wb) if(wv.has(bg)) inter++;
+      const union = wb.size + wv.size - inter;
+      let s = union > 0 ? inter / union : 0;
+      let pref = 0;
+      for(let i=0;i<Math.min(word.length, w.length); i++){
+        if(word[i] === w[i]) pref++;
+        else break;
+      }
+      s += pref * 0.15;
+      if(s > bestS){
+        bestS = s;
+        best = w;
+      }
+    }
+    return best;
+  }
+
+  dissect(prompt){
+    let tokens = prompt.toLowerCase().split(/\s+/)
+      .map(t => t.replace(/[.,!?;:"'\-\(\)\[\]]/g, ''))
+      .filter(t => t && !STOPS.has(t) && t.length > 1);
+
+    // matched to Python: keep original words, do not remap here
+    if(tokens.length === 0) tokens = [this.words[0]];
+    const seen = new Set();
+    const core = [];
+    for(const w of tokens){
+      if(!seen.has(w)){
+        seen.add(w);
+        core.push(w);
+      }
+    }
+    return core.slice(0, 5);
+  }
+
+  findNeighbors(word, n=TREE_WIDTH){
+    const wid = this.w2i[word];
+    if(wid === undefined){
+      const vec = hashEmbed(word);
+      const scored = this.words.map(w => [cosineSim(vec, this.embeds[w]), w]);
+      scored.sort((a,b)=>b[0]-a[0]);
+      return sampleShuffled(scored.slice(0, n*2).map(x=>x[1]), Math.min(n, scored.length));
     }
 
-    _buildMeta() {
-        for (let i = 0; i < this.V; i++) {
-            for (let j = Math.max(0, i-5); j <= Math.min(this.V-1, i+5); j++) {
-                if (i === j) continue;
-                const decay = 1.0 / (1.0 + Math.abs(i - j));
-                const key = Math.min(i,j) + ',' + Math.max(i,j);
-                this.cooc[key] = (this.cooc[key] || 0) + decay;
-                if (j === i + 1) this.bigram[i+','+j] = (this.bigram[i+','+j] || 0) + 1;
-            }
+    let nLocal = n;
+    const teleports = [];
+    if(Math.random() < 0.4 && this.words.length > 100){
+      const region = Math.floor(wid / 100);
+      const distant = this.words.filter(w => Math.abs(Math.floor(this.w2i[w] / 100) - region) >= 2);
+      if(distant.length){
+        teleports.push(distant[Math.floor(Math.random() * distant.length)]);
+        nLocal = n - 1;
+      }
+    }
+
+    const scored = [];
+    for(const w of this.words){
+      if(w === word) continue;
+      const oid = this.w2i[w];
+      const h = this.meta.hebb(wid, oid);
+      const c = cosineSim(this.embeds[word], this.embeds[w]);
+      scored.push([h * 0.7 + c * 0.3, w]);
+    }
+    scored.sort((a,b)=>b[0]-a[0]);
+    const top = scored.slice(0, nLocal * 2).map(x=>x[1]);
+    return sampleShuffled(top, Math.min(nLocal, top.length)).concat(teleports);
+  }
+
+  buildTree(root, w=TREE_WIDTH, d=TREE_DEPTH){
+    if(d === 0) return {w: root, ch: []};
+    const nbrs = this.findNeighbors(root, w);
+    return {w: root, ch: nbrs.map(n => this.buildTree(n, w, d-1))};
+  }
+
+  collectLeaves(tree){
+    if(!tree.ch.length) return [tree.w];
+    const out = [];
+    for(const c of tree.ch) out.push(...this.collectLeaves(c));
+    return out;
+  }
+
+  darioSample(ctx, candidates, xfLogits, usedCats){
+    if(!candidates.length) return Math.floor(Math.random()*this.V);
+    const prev = ctx.length ? ctx[ctx.length-1] : 0;
+    const tau = TAU_BASE * this.chambers.tauMod();
+
+    const scores = [];
+    for(const cid of candidates){
+      const T_x = cid < xfLogits.length ? xfLogits[cid] : 0.0;
+      const B = BIGRAM_W * Math.log(this.meta.bi(prev, cid) + 1e-10);
+      const H = ALPHA_D * this.meta.hebb(prev, cid);
+      const F = BETA_D * this.meta.proph(cid);
+      const A = GAMMA_D * this.meta.destiny[cid];
+      const Tr = this.meta.trauma * 0.1;
+      const region = Math.floor(cid / 100);
+      const div = -1.5 * (usedCats[region] || 0);
+      scores.push((T_x + B + H + F + A + Tr + div) / tau);
+    }
+
+    const probs = softmaxVec(scores);
+    const indexed = probs.map((p,i)=>[i,p]).sort((a,b)=>b[1]-a[1]).slice(0, TOP_K);
+    const top = indexed.map(([i,p]) => [candidates[i], p]);
+    const total = top.reduce((s,x)=>s+x[1],0) + 1e-10;
+    let r = Math.random(), cum = 0;
+    for(const [wid,p] of top){
+      cum += p / total;
+      if(r <= cum) return wid;
+    }
+    return top[top.length-1][0];
+  }
+
+  reassemble(leafWords){
+    const leafIds = [...new Set(leafWords.map(w => this.w2i[w]).filter(v => v !== undefined))];
+    if(!leafIds.length) return [];
+
+    for(const lid of leafIds) this.meta.destiny[lid] += 1.0;
+
+    const counts = new Map();
+    for(const id of leafIds) counts.set(id, (counts.get(id)||0)+1);
+    [...counts.entries()]
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,8)
+      .forEach(([wid,cnt]) => this.meta.addProphecy(wid, cnt*0.5));
+
+    const kv = Array.from({length:N_LAYER}, () => ({k:[], v:[]}));
+    const chain = [leafIds[Math.floor(Math.random()*leafIds.length)]];
+    const used = new Set(chain);
+    const usedCats = {};
+
+    for(let i=0;i<CORPSE_LEN-1;i++){
+      const logits = this.xf.forward(chain, kv);
+      this.chambers.excite(this.words[chain[chain.length-1]], this.cats);
+      this.chambers.step();
+
+      let cands = leafIds.filter(id => !used.has(id));
+      if(cands.length < 3) cands = leafIds;
+
+      const nxt = this.darioSample(chain, cands, logits, usedCats);
+      chain.push(nxt);
+      used.add(nxt);
+
+      const region = Math.floor(nxt / 100);
+      usedCats[region] = (usedCats[region] || 0) + 1;
+
+      this.meta.updateOnline(chain[chain.length-2], nxt);
+      this.meta.fulfill(nxt);
+    }
+
+    return chain;
+  }
+
+  brodskyFormat(wordList){
+    const out = [];
+    let nn = 0;
+    for(const w of wordList){
+      const cat = wordToCat(w, this.cats);
+      const isVerb = cat !== null && VERB_CATS.has(cat);
+
+      if(isVerb){
+        if(out.length) out.push('. ');
+        out.push(w[0].toUpperCase() + w.slice(1));
+        nn = 0;
+      } else {
+        if(!out.length){
+          out.push(w[0].toUpperCase() + w.slice(1));
+        } else if(nn >= 2){
+          out.push(' — ' + w);
+          nn = 0;
+        } else {
+          const last = out[out.length - 1];
+          if(last && /[.!]$/.test(last)){
+            out.push(' ' + w[0].toUpperCase() + w.slice(1));
+          } else {
+            out.push(', ' + w);
+          }
         }
+        nn += 1;
+      }
     }
+    return out.join('');
+  }
 
-    hebb(a, b) { return this.cooc[Math.min(a,b)+','+Math.max(a,b)] || 0; }
-    bi(a, b) { return this.bigram[a+','+b] || 0.001; }
+  makeCoda(chain){
+    const cw = chain.map(wid => this.words[wid]);
+    const shuffled = [...cw].sort(() => Math.random() - 0.5);
+    let end1 = null, end2 = null;
 
-    exciteChamber(word) {
-        const cat = Object.entries(this.cats).find(([, ws]) => ws.includes(word));
-        if (cat && CAT_CHAMBER[cat[0]] !== undefined) {
-            const idx = CAT_CHAMBER[cat[0]];
-            this.chambers[idx] = Math.min(1, this.chambers[idx] + 0.25);
-        }
+    for(const w1 of shuffled){
+      for(const w2 of cw){
+        if(rhymes(w1, w2)){ end1 = w1; end2 = w2; break; }
+      }
+      if(end1) break;
+      for(const w2 of this.words){
+        if(rhymes(w1, w2)){ end1 = w1; end2 = w2; break; }
+      }
+      if(end1) break;
     }
+    if(!end1){ end1 = cw[0]; end2 = cw[cw.length-1]; }
 
-    stepChambers() {
-        for (let iter = 0; iter < 5; iter++) {
-            const old = [...this.chambers];
-            for (let i = 0; i < 6; i++) {
-                this.chambers[i] *= CHAMBER_DECAY[i];
-                for (let j = 0; j < 6; j++)
-                    if (i !== j) this.chambers[i] += CROSSFIRE_K * Math.sin(old[j] - old[i]);
-                this.chambers[i] = Math.max(0, Math.min(1, this.chambers[i]));
-            }
-        }
-    }
+    const body = cw.filter(w => w !== end1 && w !== end2);
+    const mid = Math.max(Math.floor(cw.length / 2), 3);
+    const l1Words = body.slice(0, mid-1).concat([end1]);
+    let l2Words = body.slice(mid-1, mid+5).concat([end2]);
+    if(l2Words.length < 3) l2Words = body.slice(1,5).concat([end2]);
 
-    tauMod() { return 1.0 + 0.3*this.chambers[1] - 0.2*this.chambers[2] + 0.15*this.chambers[4]; }
+    return [this.brodskyFormat(l1Words), this.brodskyFormat(l2Words)];
+  }
 
-    nearestVocab(word) {
-        const vec = hashEmbed(word);
-        let best = this.words[0], bestS = -2;
-        for (const w of this.words) {
-            const s = cosSim(vec, this.embeds[w]);
-            if (s > bestS) { best = w; bestS = s; }
-        }
-        return best;
-    }
+  phonDiversity(ws){
+    return new Set(ws.map(phonetic)).size / Math.max(ws.length, 1);
+  }
 
-    dissect(prompt) {
-        let tokens = prompt.toLowerCase().split(/[\s,.;!?'"()\[\]-]+/).filter(t => t.length > 2 && !STOPS.has(t));
-        const vocabSet = new Set(this.words);
-        let core = [];
-        const seen = new Set();
-        for (const t of tokens) {
-            const w = vocabSet.has(t) ? t : this.nearestVocab(t);
-            if (!seen.has(w)) { core.push(w); seen.add(w); }
-        }
-        if (!core.length) core = [this.words[0]];
-        return core.slice(0, 4);
-    }
-
-    findNeighbors(word, n) {
-        const wid = this.w2i[word];
-        if (wid === undefined) return this._sample(this.words, n);
-        // teleport: 30% chance
-        const teleports = [];
-        let nLocal = n;
-        if (Math.random() < 0.3 && this.V > 100) {
-            const region = Math.floor(wid / 80);
-            const distant = this.words.filter(w => Math.abs(Math.floor(this.w2i[w]/80) - region) >= 2);
-            if (distant.length) { teleports.push(distant[Math.floor(Math.random()*distant.length)]); nLocal--; }
-        }
-        const scored = [];
-        for (const w of this.words) {
-            if (w === word) continue;
-            const oid = this.w2i[w];
-            const h = this.hebb(wid, oid);
-            const c = cosSim(this.embeds[word], this.embeds[w]);
-            scored.push([h * 0.7 + c * 0.3, w]);
-        }
-        scored.sort((a, b) => b[0] - a[0]);
-        const top = scored.slice(0, nLocal * 2).map(s => s[1]);
-        return this._sample(top, Math.min(nLocal, top.length)).concat(teleports);
-    }
-
-    _sample(arr, n) {
-        const a = [...arr];
-        for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
-        return a.slice(0, n);
-    }
-
-    buildTree(root, w = TREE_WIDTH, d = TREE_DEPTH) {
-        if (d === 0) return { w: root, ch: [] };
-        const nbrs = this.findNeighbors(root, w);
-        return { w: root, ch: nbrs.map(n => this.buildTree(n, w, d - 1)) };
-    }
-
-    collectLeaves(tree) {
-        if (!tree.ch.length) return [tree.w];
-        return tree.ch.flatMap(c => this.collectLeaves(c));
-    }
-
-    darioSample(ctx, candidates, usedCats) {
-        if (!candidates.length) return Math.floor(Math.random() * this.V);
-        const prev = ctx[ctx.length - 1] || 0;
-        const tau = TAU_BASE * this.tauMod();
-        const scores = candidates.map(cid => {
-            const B = BIGRAM_W * Math.log(this.bi(prev, cid) + 1e-10);
-            const H = ALPHA_D * this.hebb(prev, cid);
-            const F = BETA_D * (this.prophecy[cid] || 0);
-            const A = GAMMA_D * this.destiny[cid];
-            const Tr = this.trauma * 0.1;
-            const region = Math.floor(cid / 80);
-            const div = -1.5 * (usedCats[region] || 0);
-            return (B + H + F + A + Tr + div) / tau;
-        });
-        // softmax + top-k
-        const mx = Math.max(...scores);
-        const exps = scores.map(s => Math.exp(s - mx));
-        const sm = exps.reduce((a, b) => a + b, 0) + 1e-10;
-        const probs = exps.map(e => e / sm);
-        const indexed = probs.map((p, i) => [i, p]).sort((a, b) => b[1] - a[1]).slice(0, TOP_K);
-        const topP = indexed.reduce((s, [,p]) => s + p, 0) + 1e-10;
-        let r = Math.random(), cum = 0;
-        for (const [i, p] of indexed) {
-            cum += p / topP;
-            if (r <= cum) return candidates[i];
-        }
-        return candidates[indexed[indexed.length-1][0]];
-    }
-
-    reassemble(leafWords) {
-        const leafIds = [...new Set(leafWords.map(w => this.w2i[w]).filter(id => id !== undefined))];
-        if (!leafIds.length) return [];
-        for (const lid of leafIds) this.destiny[lid] += 1.0;
-        // prophecies
-        const freq = {};
-        leafIds.forEach(id => freq[id] = (freq[id]||0) + 1);
-        Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0,8).forEach(([id,cnt]) => {
-            this.prophecy[+id] = (this.prophecy[+id]||0) + cnt * 0.5;
-        });
-        const chain = [leafIds[Math.floor(Math.random()*leafIds.length)]];
-        const used = new Set(chain);
-        const usedCats = {};
-        for (let s = 0; s < CORPSE_LEN - 1; s++) {
-            this.exciteChamber(this.words[chain[chain.length-1]]);
-            this.stepChambers();
-            let cands = leafIds.filter(id => !used.has(id));
-            if (cands.length < 3) cands = leafIds;
-            const nxt = this.darioSample(chain, cands, usedCats);
-            chain.push(nxt);
-            used.add(nxt);
-            const region = Math.floor(nxt / 80);
-            usedCats[region] = (usedCats[region]||0) + 1;
-            // online hebbian
-            const prev = chain[chain.length-2];
-            const key = Math.min(prev,nxt)+','+Math.max(prev,nxt);
-            this.cooc[key] = (this.cooc[key]||0) + 0.5;
-            this.bigram[prev+','+nxt] = (this.bigram[prev+','+nxt]||0) + 0.5;
-            delete this.prophecy[nxt];
-            this.trauma = Math.min(1, this.trauma + 0.05) * 0.97;
-        }
-        return chain;
-    }
-
-    _wordCat(word) {
-        for (const [cat, ws] of Object.entries(this.cats))
-            if (ws.includes(word)) return cat;
-        return null;
-    }
-
-    _brodskyFormat(words) {
-        // Brodsky punctuation: nouns comma-separated, verbs isolated, dashes for drama
-        const verbCats = new Set(['action verbs','transformation / process']);
-        const out = [];
-        let nn = 0;
-        for (const w of words) {
-            const cat = this._wordCat(w);
-            const isVerb = cat && verbCats.has(cat);
-            if (isVerb) {
-                if (out.length) out.push('. ');
-                out.push(w[0].toUpperCase() + w.slice(1));
-                nn = 0;
-            } else {
-                if (!out.length) {
-                    out.push(w[0].toUpperCase() + w.slice(1));
-                } else if (nn >= 2) {
-                    out.push(' \u2014 ' + w);
-                    nn = 0;
-                } else {
-                    const last = out[out.length-1];
-                    if (last && (last.endsWith('.') || last.endsWith('!'))) {
-                        out.push(' ' + w[0].toUpperCase() + w.slice(1));
-                    } else {
-                        out.push(', ' + w);
-                    }
-                }
-                nn++;
-            }
-        }
-        return out.join('');
-    }
-
-    makeCoda(chain) {
-        const cw = chain.map(id => this.words[id]);
-        const shuffled = [...cw].sort(() => Math.random() - 0.5);
-        let end1 = null, end2 = null;
-        for (const w1 of shuffled) {
-            for (const w2 of cw) { if (rhymes(w1, w2)) { end1 = w1; end2 = w2; break; } }
-            if (end1) break;
-            for (const w2 of this.words) { if (rhymes(w1, w2)) { end1 = w1; end2 = w2; break; } }
-            if (end1) break;
-        }
-        if (!end1) { end1 = cw[0]; end2 = cw[cw.length-1]; }
-        const body = cw.filter(w => w !== end1 && w !== end2);
-        const mid = Math.max(Math.floor(body.length/2), 2);
-        const l1 = [...body.slice(0, mid), end1];
-        let l2 = [...body.slice(mid, mid+5), end2];
-        if (l2.length < 3) l2 = [...body.slice(1,5), end2];
-        return [this._brodskyFormat(l1), this._brodskyFormat(l2)];
-    }
-
-    chambersDisplay() {
-        return CHAMBERS.map((n,i) => this.chambers[i] > 0.08 ? `${n}:${this.chambers[i].toFixed(2)}` : null).filter(Boolean).join(' ');
-    }
+  mutDepth(leaves){
+    return Math.min(1.0, new Set(leaves).size / Math.max(leaves.length, 1));
+  }
 }
 
-// ═══ UI ═══
+// ═══════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════
 let engine = new MicroKarpathy(DEFAULT_VOCAB);
-let term = document.getElementById("console");
-let inputEl = document.getElementById("prompt");
-let btnEl = document.getElementById("btn");
-let cursorHtml = '<span class="cursor"></span>';
-let isTyping = false;
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-function scrollBottom() { term.scrollTop = term.scrollHeight; }
+const term = document.getElementById('console');
+const inputEl = document.getElementById('prompt');
+const btnEl = document.getElementById('btn');
+const fileEl = document.getElementById('file-input');
+const cursorHtml = '<span class="cursor"></span>';
+let typing = false;
 
-async function typeText(text, delay = 12, cls = "") {
-    let html = term.innerHTML.replace(cursorHtml, "");
-    const open = cls ? `<span class="${cls}">` : "";
-    const close = cls ? "</span>" : "";
-    for (let i = 0; i < text.length; i++) {
-        html += open + text.charAt(i) + close;
-        term.innerHTML = html + cursorHtml;
-        scrollBottom();
-        await sleep(delay + Math.random() * 8);
-    }
-}
+function scrollBottom(){ term.scrollTop = term.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-async function printTree(tree, prefix, isLast) {
-    const conn = isLast ? '\u2514\u2500 ' : '\u251c\u2500 ';
-    await typeText(prefix + conn, 3);
-    await typeText(tree.w + '\n', 8, 'bone');
-    const childPre = prefix + (isLast ? '   ' : '\u2502  ');
-    for (let i = 0; i < tree.ch.length; i++) {
-        await printTree(tree.ch[i], childPre, i === tree.ch.length - 1);
-    }
-}
-
-function loadVocabFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        engine = new MicroKarpathy(e.target.result);
-        const html = term.innerHTML.replace(cursorHtml, "");
-        term.innerHTML = html + `\n<span class="bone">  [loaded ${engine.V} words from ${file.name}]</span>\n` + cursorHtml;
-        scrollBottom();
-    };
-    reader.readAsText(file);
-}
-
-inputEl.addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); startAutopsy(); } });
-
-async function startAutopsy() {
-    const prompt = inputEl.value.trim();
-    if (!prompt || isTyping) return;
-    isTyping = true;
-    inputEl.value = "";
-    inputEl.disabled = true;
-    btnEl.disabled = true;
-
-    // reset engine state for this autopsy
-    engine.prophecy = {};
-    engine.destiny = new Float32Array(engine.V);
-    engine.trauma = 0;
-    engine.chambers = CHAMBERS.map(() => Math.random() * 0.2);
-
-    term.innerHTML = term.innerHTML.replace(cursorHtml, "") +
-        `\n<span class="bone">> ${prompt}</span>\n\n` + cursorHtml;
-    scrollBottom();
-
-    await sleep(300);
-    await typeText("\u2554" + "\u2550".repeat(58) + "\u2557\n");
-    await typeText("\u2551  MICROKARPATHY \u2014 Prompt Autopsy Without Weights", 8);
-    await typeText(" ".repeat(9) + "\u2551\n", 2);
-    await typeText("\u2551  p(x|\u03a6) = softmax((B + \u03b1H + \u03b2F + \u03b3A + T) / \u03c4)", 8);
-    await typeText(" ".repeat(12) + "\u2551\n", 2);
-    await typeText("\u2551  zero weights \u00b7 zero gradients \u00b7 zero mercy", 8);
-    await typeText(" ".repeat(14) + "\u2551\n", 2);
-    await typeText("\u255a" + "\u2550".repeat(58) + "\u255d\n\n");
-
-    await typeText(`  vocab: ${engine.V} words | trained: 0\n\n`);
-    await typeText("=" .repeat(60) + "\n");
-    await typeText("  AUTOPSY REPORT\n", 15, "blood");
-    await typeText(`  Subject: "${prompt}"\n`);
-    await typeText("=".repeat(60) + "\n\n");
-
-    // Dissection
-    const core = engine.dissect(prompt);
-    await typeText("  Core words: ");
-    await typeText(core.join(" ") + "\n", 20, "bone");
-
-    // Mutation trees
-    let allLeaves = [];
-    for (const word of core) {
-        await typeText(`\n  Tree [${word}]:\n`, 10, "blood");
-        const tree = engine.buildTree(word);
-        await printTree(tree, "    ", true);
-        allLeaves.push(...engine.collectLeaves(tree));
-    }
-    const unique = [...new Set(allLeaves)];
-    await typeText(`\n  Collected ${unique.length} unique leaves\n\n`, 10);
-    await sleep(400);
-
-    // Reassembly
-    const chain = engine.reassemble(unique);
-    const corpse = chain.map(id => engine.words[id]);
-    await typeText("  \u2500\u2500 CORPSE \u2500".repeat(5) + "\n", 8, "blood");
-
-    // Template sentence
-    if (corpse.length >= 5) {
-        const tmpl = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
-        const shuffled = [...corpse].sort(() => Math.random()-0.5);
-        const fill = shuffled.slice(0, 6);
-        while (fill.length < 6) fill.push(corpse[0]);
-        let txt = tmpl;
-        for (let i = 0; i < 6; i++) txt = txt.replace(`{${i}}`, fill[i] || '');
-        await typeText("  " + txt + "\n", 35);
-    }
-    await typeText("  " + corpse.join(" ") + ".\n\n", 25);
-    await sleep(500);
-
-    // Coda
-    const [l1, l2] = engine.makeCoda(chain);
-    await typeText("  \u2500\u2500 CODA \u2500".repeat(5) + "\n", 8, "blood");
-    await typeText("  " + l1 + ",\n", 40, "blood");
-    await typeText("  " + l2 + ".\n\n", 40, "blood");
-    await sleep(400);
-
-    // Chambers
-    const chDisplay = engine.chambersDisplay();
-    if (chDisplay) await typeText(`  chambers: ${chDisplay}\n`, 10);
-
-    // Metrics
-    const fps = new Set(corpse.map(phonetic));
-    const pd = (fps.size / Math.max(corpse.length, 1)).toFixed(3);
-    const md = (new Set(allLeaves).size / Math.max(allLeaves.length, 1)).toFixed(3);
-    const bar = v => '#'.repeat(Math.floor(v*20)) + '.'.repeat(20 - Math.floor(v*20));
-    await typeText("\n  \u2500\u2500 METRICS \u2500".repeat(5) + "\n", 8);
-    await typeText(`  Phonetic Diversity: [${bar(pd)}] ${pd}\n`);
-    await typeText(`  Mutation Depth:     [${bar(md)}] ${md}\n`);
-    await typeText(`\n  Vocabulary: ${engine.V} | Prophecies: ${Object.keys(engine.prophecy).length} active | Trauma: ${engine.trauma.toFixed(3)}\n`);
-
-    await sleep(800);
-    let html = term.innerHTML.replace(cursorHtml, "");
-    html += `<div class="signature">\n  [autopsy complete. \u2014 microKarpathy.]\n</div>\n\n`;
+async function typeText(text, delay=10, cls=''){
+  let html = term.innerHTML.replace(cursorHtml, '');
+  const esc = (s) => s
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/\n/g,'\n');
+  for(let i=0;i<text.length;i++){
+    const ch = esc(text[i]);
+    html += cls ? `<span class="${cls}">${ch}</span>` : ch;
     term.innerHTML = html + cursorHtml;
     scrollBottom();
-
-    isTyping = false;
-    inputEl.disabled = false;
-    btnEl.disabled = false;
-    inputEl.focus();
+    await sleep(delay + Math.random()*6);
+  }
 }
+
+async function printTree(tree, pre="", last=true){
+  const conn = last ? "└─ " : "├─ ";
+  await typeText(pre + conn, 2);
+  await typeText(tree.w + "\n", 6, 'bone');
+  const childPre = pre + (last ? "   " : "│  ");
+  for(let i=0;i<tree.ch.length;i++){
+    await printTree(tree.ch[i], childPre, i === tree.ch.length-1);
+  }
+}
+
+function appendLineNow(htmlLine){
+  const html = term.innerHTML.replace(cursorHtml, '');
+  term.innerHTML = html + htmlLine + cursorHtml;
+  scrollBottom();
+}
+
+fileEl.addEventListener('change', (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    engine = new MicroKarpathy(String(e.target.result || ""));
+    appendLineNow(`\n<span class="bone">[loaded ${engine.V} words from ${file.name}]</span>\n`);
+  };
+  reader.readAsText(file);
+});
+
+inputEl.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    startAutopsy();
+  }
+});
+btnEl.addEventListener('click', startAutopsy);
+
+async function startAutopsy(){
+  const prompt = inputEl.value.trim();
+  if(!prompt || typing) return;
+
+  typing = true;
+  inputEl.disabled = true;
+  btnEl.disabled = true;
+  inputEl.value = "";
+
+  // fresh organs each run
+  const vocabText = engine.words.join('\n'); // not enough to preserve categories, so rebuild from last parsed source isn't possible here
+  // keep current loaded engine instead of rebuilding blindly
+  engine.meta = new MetaWeights(engine.words);
+  engine.chambers = new KuramotoChambers();
+  engine.xf = new GhostTransformer(engine.V);
+
+  appendLineNow(`\n<span class="bone">&gt; ${prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>\n\n`);
+  await sleep(180);
+
+  await typeText("╔" + "═".repeat(62) + "╗\n");
+  await typeText("║  MICROKARPATHY — Educational Prompt Autopsy", 6);
+  await typeText(" ".repeat(18) + "║\n", 1);
+  await typeText("║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)", 6);
+  await typeText(" ".repeat(8) + "║\n", 1);
+  await typeText("║  zero weights · zero gradients · zero mercy", 6);
+  await typeText(" ".repeat(18) + "║\n", 1);
+  await typeText("╚" + "═".repeat(62) + "╝\n\n");
+
+  await typeText(`  vocab: ${engine.V} words | ghost params: ${engine.xf.nParams.toLocaleString()} | trained: 0\n\n`);
+  await typeText("=".repeat(64) + "\n");
+  await typeText("  AUTOPSY REPORT\n", 10, "blood");
+  await typeText(`  Subject: "${prompt}"\n`);
+  await typeText("=".repeat(64) + "\n\n");
+
+  const core = engine.dissect(prompt);
+  await typeText("  Core words: ");
+  await typeText(core.join(" ") + "\n", 12, "bone");
+
+  let allLeaves = [];
+  for(const word of core){
+    await typeText(`\n  Tree [${word}]:\n`, 7, 'blood');
+    const tree = engine.buildTree(word);
+    await printTree(tree, "    ", true);
+    allLeaves.push(...engine.collectLeaves(tree));
+  }
+
+  const uniqueLeaves = [...new Set(allLeaves)];
+  await typeText(`\n  Collected ${uniqueLeaves.length} unique leaves\n`);
+
+  const chain = engine.reassemble(uniqueLeaves);
+  const corpse = chain.map(wid => engine.words[wid]);
+
+  await typeText(`\n  ── CORPSE ─────────────────────────────────────────────────────────\n`, 5, 'blood');
+
+  if(corpse.length >= 5){
+    const tmpl = TEMPLATES[Math.floor(Math.random()*TEMPLATES.length)];
+    const fill = sampleShuffled(corpse, Math.min(6, corpse.length));
+    while(fill.length < 6) fill.push(corpse[0]);
+    let sentence = tmpl;
+    for(let i=0;i<6;i++) sentence = sentence.replace(`{${i}}`, fill[i] || '');
+    await typeText(`  ${sentence}\n`, 18);
+  }
+
+  await typeText(`  ${corpse.join(" ")}.\n`, 18);
+
+  const [l1, l2] = engine.makeCoda(chain);
+  await typeText(`\n  ── CODA ──────────────────────────────────────────────────────────\n`, 5, 'blood');
+  await typeText(`  ${l1},\n`, 24, 'blood');
+  await typeText(`  ${l2}.\n`, 24, 'blood');
+
+  const ch = engine.chambers.display();
+  if(ch){
+    await typeText(`\n  chambers: ${ch}\n`);
+  }
+
+  const pd = engine.phonDiversity(corpse);
+  const md = engine.mutDepth(allLeaves);
+
+  await typeText(`\n  ── METRICS ────────────────────────────────────────────────────────\n`, 5);
+  await typeText(`  Phonetic Diversity: [${bar(pd)}] ${pd.toFixed(3)}\n`);
+  await typeText(`  Mutation Depth:     [${bar(md)}] ${md.toFixed(3)}\n`);
+  await typeText(`\n  Vocabulary: ${engine.V} | Co-occurrences: ${engine.meta.cooc.size}\n`);
+  await typeText(`  Prophecies: ${engine.meta.prophecy.size} active | Trauma: ${engine.meta.trauma.toFixed(3)}\n`);
+
+  appendLineNow(`\n<div class="signature">[autopsy complete. — microKarpathy.]</div>\n\n`);
+
+  typing = false;
+  inputEl.disabled = false;
+  btnEl.disabled = false;
+  inputEl.focus();
+}
+
+// boot banner
+appendLineNow(
+`<span class="bone">microKarpathy HTML loaded.
+load microkarpathy.txt for the full body, or use the embedded default.
+this build is aligned to the Python autopsy logic as closely as the browser allows.</span>\n`
+);
 </script>
 </body>
 </html>
