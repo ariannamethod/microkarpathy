@@ -19,8 +19,6 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell m
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  MICROKARPATHY — Educational Prompt Autopsy                  ║
-║  p(x|Φ) = softmax((T + B + αH + βF + γA + Tr) / τ)           ║
-║  zero weights · zero gradients · zero mercy                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
   vocab: 1396 words | ghost params: 102,656 | trained: 0
@@ -161,7 +159,7 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell m
 - **llm** → sign → meaning → speech → symbol → **language**. Also → space → energy → gravity → force. Three letters find the meaning of language through gravitational physics.
 - **scratch** → dialect → narrative → sonnet → prose. system → adaptation → evolution → complexity → truth. From scratch = from the beginning of language. Scratch finds poetry.
 
-The corpse reads: *"precipitation pebble shroud until magnetosphere consumes."* Nobody wrote these words. They were attracted to each other by the Dario Equation — gravitational pull between dead words in a 1396-word morgue.
+The corpse reads: *"precipitation pebble shroud until magnetosphere consumes". These words were attracted to each other by the Dario Equation — gravitational pull between dead words in a 1396-word morgue.
 
 ---
 
