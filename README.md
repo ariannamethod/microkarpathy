@@ -2,7 +2,7 @@
 **by Arianna Method**  
 ---
   
-´microKarpathy' is an atomic Python script which takes (for educational purposes) your innocent prompts, tears them apart like a psychopathic linguist, builds a recursive tree of semantic mutations, and then, like Frankenstein having a particularly creative day — reassembles the corpse into something *new*.  and at the end microKarpathy writes an infernal couple (CODA) about an autopsy. 
+´microKarpathy' is an atomic Python sccrypt which takes (for educational purposes) your innocent prompts, tears them apart like a psychopathic linguist, builds a recursive tree of semantic mutations, and then, like Frankenstein having a particularly creative day — reassembles the corpse into something *new*.  and at the end microKarpathy writes an infernal couple (CODA) about an autopsy. 
 
 no dependencies. no internet. no autoregressive generation. ain't no conscience either.
 
@@ -12,7 +12,7 @@ Karpathy, whose [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f5753
 
 ### 1: An Educational Example
 
-´microKarpathy' prefers to explain in a vertical style, because performing open-heart surgery on the complexity of life in this position is much more comfortable and safier than in any other. maybe cause of some other reasons, 'microkarpathy', like all
+unsurprisingly,´microKarpathy' prefers to explain in a vertical style, because performing open-heart surgery on the complexity of life in this position is much more comfortable and safier than in any other. maybe cause of some other reasons, 'microkarpathy', like all
 of us, has a tendencies.
 here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell me how to build an llm from scratch" (what else could I ask?!), and here's what happens:  
 
