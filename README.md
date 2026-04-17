@@ -2,7 +2,7 @@
 **by Arianna Method**  
 ---
   
-´microKarpathy' is an atomic Python sccrypt which takes (for educational purposes) your innocent prompts, tears them apart like a psychopathic linguist, builds a recursive tree of semantic mutations, and then, like Frankenstein having a particularly creative day — reassembles the corpse into something *new*.  and at the end microKarpathy writes an infernal couple (CODA) about an autopsy. 
+´microKarpathy' is an atomic Python scrypt which takes (for educational purposes) your innocent prompts, tears them apart like a psychopathic linguist, builds a recursive tree of semantic mutations, and then, like Frankenstein having a particularly creative day — reassembles the corpse into something *new*.  and at the end microKarpathy writes an infernal couple (CODA) about an autopsy. 
 
 no dependencies. no internet. no autoregressive generation. ain't no conscience either.
 
