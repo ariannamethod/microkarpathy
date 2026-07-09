@@ -778,13 +778,21 @@ def autopsy(prompt, vocab_path='microkarpathy.txt'):
 # ═══════════════════════════════════════════════════════════════════
 
 if __name__ == '__main__':
+    args = sys.argv[1:]
     path = 'microkarpathy.txt'
+    # feed any text file as the body: --file BOOK.txt [prompt...]
+    if '--file' in args:
+        i = args.index('--file')
+        if i + 1 < len(args):
+            path = args[i + 1]
+            args = args[:i] + args[i + 2:]
     if not os.path.exists(path):
         print(f"  {path} not found. the autopsy requires a body.")
         sys.exit(1)
 
-    if len(sys.argv) > 1:
-        autopsy(' '.join(sys.argv[1:]), path)
+    prompt = ' '.join(args).strip()
+    if prompt:
+        autopsy(prompt, path)
     else:
         print("  microkarpathy \u2014 prompt autopsy without weights")
         print("  type a sentence. ctrl+d to flee.\n")

@@ -245,7 +245,20 @@ python microkarpathy.py
 
 # browser (open in any browser, no server needed)
 open microkarpathy.html
+
+# feed it a whole book instead of the built-in morgue
+python microkarpathy.py --file tropic_of_cancer.txt "paris"   # or: drag a .txt onto microkarpathy.html
 ```
+
+---
+
+### it eats anything
+
+point it at any text file and the whole file *becomes* the dictionary — every line is one token, the vocabulary is the embedding space. any text, any language, any size, and it doesn't care.
+
+in a novel a line is roughly a sentence, so the mutation tree grows over **sentences** instead of words — feed it *Tropic of Cancer* (eight thousand-odd lines) and it dissects the whole corpse in a couple of seconds. feed it a page of Hebrew and it builds a tree over "על הקודש" without ever being told what Hebrew is: a word from your prompt that isn't in the vocabulary gets an FNV-1a hash embedding and is matched by cosine, while a file written in that language simply *is* a dictionary of its own lines.
+
+the connections in a book-tree aren't the noise of random hash vectors — they come from which lines sit next to each other and which lines share content words (sentence-level positional attention). the order of the text is the model. there is no training, no fine-tune, no config — you hand it a corpse and it performs the autopsy in whatever tongue the corpse was buried in.
 
 ---
 
