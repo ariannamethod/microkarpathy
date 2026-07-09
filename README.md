@@ -21,7 +21,7 @@ here's a full corpse-map from the microKarpathy's morgue. I fed him with "tell m
 ║  MICROKARPATHY — Educational Prompt Autopsy                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
-  vocab: 1396 words | ghost params: 102,656 | trained: 0
+  vocab: 1396 words | ghost params: 103,681 | trained: 0
 
 ================================================================
   AUTOPSY REPORT
@@ -200,6 +200,8 @@ no gradient descent and no backpropagation. this is gravitational attraction bet
 
 the ghost transformer is real — same architecture as Karpathy's microgpt (multi-head attention, RMSNorm, FFN). but the weights are deterministic random projections. never trained. they provide a chaos substrate that the Dario Equation modulates. the transformer is the skeleton. the MetaWeights are the flesh.
 
+the morgue remembers its clients. within one session the organs — destiny, trauma, prophecy, co-occurrence — persist across autopsies instead of dying each turn, so a leaf reached by many branches pulls harder (destiny), and trauma rises the longer the surgeon works. the very first autopsy of a session is deterministic (seed 42); every one after is shaped by what came before. the browser (`microkarpathy.html`) samples live and so is a living theatre rather than a photograph.
+
 
 #### Act III: Coda
 
@@ -219,12 +221,12 @@ the coda is named after the musical term (the concluding passage) and is definit
 ### Architecture
 
 ```
-microkarpathy.py     701 lines   Python autopsy engine, Dario Equation,
+microkarpathy.py     799 lines   Python autopsy engine, Dario Equation,
                                  ghost transformer, Kuramoto chambers,
                                  MetaWeights, mutation trees, coda
-microkarpathy.txt    1170 lines  1396 words in 34 semantic categories
+microkarpathy.txt    1463 lines  1396 words in 34 semantic categories
                                  (the vocabulary IS the embedding space)
-microkarpathy.html   ~1240 lines browser inference with CRT terminal
+microkarpathy.html   1591 lines  browser inference with CRT terminal
                                  (same engine ported to JavaScript)
 ```
 

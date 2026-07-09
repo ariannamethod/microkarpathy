@@ -80,6 +80,7 @@ STOPS = frozenset(
 
 def load_vocab(path):
     words, cats, cat = [], {}, 'uncategorized'
+    seen = set()  # MK-6: hoisted — was `w not in set(words)`, rebuilt per line (O(n^2))
     with open(path) as f:
         for line in f:
             line = line.strip()
@@ -89,7 +90,8 @@ def load_vocab(path):
                 cats[cat] = []
                 continue
             w = line.lower().strip()
-            if w and w not in set(words):
+            if w and w not in seen:
+                seen.add(w)
                 words.append(w)
                 cats.setdefault(cat, []).append(w)
     return words, cats
@@ -237,7 +239,9 @@ class GhostTransformer:
             x = linear(h, layer['ff2'])
             x = [a + b for a, b in zip(x, xr)]
 
-        return linear(x, self.lm_head)
+        # MK-7: final pre-LN before the head (matches microkarpathy.html:forward,
+        # which already rmsnorms here — the two substrates were producing different T_x).
+        return linear(rmsnorm(x), self.lm_head)
 
 # ═══════════════════════════════════════════════════════════════════
 # METAWEIGHTS — weights that don't exist but form a complete
@@ -296,8 +300,9 @@ class MetaWeights:
                 if len(tok) > 3:  # skip short words
                     word_index.setdefault(tok, []).append(i)
         # entries sharing content words get extra co-occurrence
+        cap = max(50, len(self.words) // 50)  # MK-8: scale cap with vocab (was hard 50 → dropped novel resonators like "paris"@83; V//50 keeps default at 50, admits ~2% words)
         for tok, ids in word_index.items():
-            if len(ids) < 2 or len(ids) > 50: continue  # skip unique / too common
+            if len(ids) < 2 or len(ids) > cap: continue  # skip unique / too common
             for i in range(len(ids)):
                 for j in range(i + 1, min(i + 10, len(ids))):
                     key = (min(ids[i], ids[j]), max(ids[i], ids[j]))
@@ -334,7 +339,27 @@ CAT_TO_CHAMBER = {
     'architecture / space': 5, 'tools / instruments': 2,
     'soviet / bureaucratic': 3, 'fabric / material': 4,
     'chemistry / elements': 5, 'weather / atmosphere': 3, 'food / organic': 2,
+    # MK-5: the other 16 categories of the dictionary — were deaf before
+    'tech / computation': 5, 'cognition / learning': 5, 'language / speech': 4,
+    'physics / cosmology': 5, 'biology / existence': 0, 'systems / complexity': 5,
+    'truth / power': 2, 'war / conflict': 2, 'economy / value': 5,
+    'civilization / places': 5, 'elements / materials': 4, 'substances / tools': 2,
+    'dream / spirit': 3, 'mathematics': 5, 'direction / color': 4, 'archetypes': 5,
 }
+
+# MK-5: a somatic lexicon (Klaus kk_text_mood style) so FED files — which carry no
+# category headers ('uncategorized') — still excite the chambers. Word -> chamber.
+MOOD_LEXICON = {}
+for _ch, _ws in {
+    0: "fear afraid terror dread panic horror scared anxiety threat danger nightmare alarm worry fright",
+    1: "love warm tender kiss embrace gentle dear affection care desire longing sweet caress beloved",
+    2: "rage anger fury hate violence fight kill blood wrath scream strike burn war destroy",
+    3: "void empty numb nothing silence death dark cold absence hollow dead gone lost alone",
+    4: "flow move run dance river wind rhythm breath water light song stream drift wave",
+    5: "time mind thought dream memory world truth question mystery meaning pattern idea form chaos",
+}.items():
+    for _w in _ws.split():
+        MOOD_LEXICON[_w] = _ch
 
 class KuramotoChambers:
     def __init__(self):
@@ -342,8 +367,19 @@ class KuramotoChambers:
 
     def excite(self, word, cats):
         cat = word_to_cat(word, cats)
+        idx = None
         if cat and cat in CAT_TO_CHAMBER:
             idx = CAT_TO_CHAMBER[cat]
+        else:
+            # MK-5: fed entries are whole lines/sentences with no category — scan
+            # their tokens against the somatic lexicon so uncategorized text still
+            # excites the nervous system (was silent → chambers dead on books).
+            for tok in word.lower().split():
+                tok = tok.strip('.,!?;:"\'-()[]')
+                if tok in MOOD_LEXICON:
+                    idx = MOOD_LEXICON[tok]
+                    break
+        if idx is not None:
             self.act[idx] = min(1.0, self.act[idx] + 0.25)
 
     def step(self):
@@ -370,34 +406,29 @@ class KuramotoChambers:
 def char_bigrams(word):
     return set(word[i:i+2] for i in range(len(word) - 1)) if len(word) > 1 else {word}
 
-def nearest_vocab(word, words, embeds):
-    """Find nearest vocab word by character similarity. Not hash — meaning."""
-    wb = char_bigrams(word)
-    best, best_s = words[0], -1
-    for w in words:
-        # Jaccard on character bigrams: shared / total
-        wvb = char_bigrams(w)
-        inter = len(wb & wvb)
-        union = len(wb | wvb)
-        s = inter / union if union > 0 else 0
-        # bonus for shared prefix
-        pref = 0
-        for a, b in zip(word, w):
-            if a == b: pref += 1
-            else: break
-        s += pref * 0.15
-        if s > best_s: best, best_s = w, s
-    return best
+# MK-10: nearest_vocab removed — it was never called, and remapping a prompt word to
+# its "nearest" vocab word contradicts the design ("the autopsy dissects YOU, not a proxy").
 
-def dissect(prompt, vocab_set, words, embeds):
+def dissect(prompt, vocab_set, words, embeds, corpus_stops=frozenset()):
     tokens = prompt.lower().split()
     tokens = [t.strip('.,!?;:"\'-()[]') for t in tokens]
-    tokens = [t for t in tokens if t and t not in STOPS and len(t) > 1]
+    # MK-12: the corpus's own most-frequent words are its stop-words (organic
+    # multilingual filtering — a novel's "the/and", a Hebrew file's "של/הוא").
+    stops = STOPS | corpus_stops
+    cand = [t for t in tokens if t and t not in stops and len(t) > 1]
     # keep original words — don't remap. the autopsy dissects YOU, not a proxy.
-    if not tokens: tokens = [words[0]]
+    if not cand: cand = [words[0]]
     seen = set()
-    core = [w for w in tokens if not (w in seen or seen.add(w))]
-    return core[:5]
+    cand = [w for w in cand if not (w in seen or seen.add(w))]
+    # MK-9: select the core by length + rarity + position + a sprinkle of chaos
+    # (README:174), not just the first five; survivors kept in reading order.
+    def score(t, i):
+        length = len(t) * 0.4
+        rarity = 2.0 if t not in vocab_set else 0.0   # words outside the morgue are the strange ones
+        position = (1.0 - i / max(len(cand), 1)) * 1.5
+        return length + rarity + position + random.random() * 0.6
+    keep = set(sorted(range(len(cand)), key=lambda i: -score(cand[i], i))[:5])
+    return [cand[i] for i in range(len(cand)) if i in keep]
 
 # ═══════════════════════════════════════════════════════════════════
 # MUTATION TREE — recursive semantic branching
@@ -469,22 +500,23 @@ def print_tree(t, pre="", last=True):
 def dario_sample(meta, chambers, ctx, candidates, xf_logits, used_cats=None):
     if not candidates: return random.randint(0, meta.V - 1)
     prev = ctx[-1] if ctx else 0
-    tau = TAU_BASE * chambers.tau_mod()
+    # MK-1: trauma modulates the TEMPERATURE (how sharply the corpse fixates), not
+    # an additive constant that softmax cancels. More trauma -> cooler tau -> sharper.
+    tau = TAU_BASE * chambers.tau_mod() * max(0.5, 1.0 - 0.3 * meta.trauma)
     scores = []
     for cid in candidates:
         T_x = xf_logits[cid] if cid < len(xf_logits) else 0.0
         B   = BIGRAM_W * math.log(meta.bi(prev, cid) + 1e-10)
         H   = ALPHA_D * meta.hebb(prev, cid)
         F   = BETA_D * meta.proph(cid)
-        A   = GAMMA_D * meta.destiny[cid]
-        Tr  = meta.trauma * 0.1
+        A   = GAMMA_D * meta.destiny[cid]  # MK-1: destiny now varies per leaf (see reassemble)
         # diversity: penalize overrepresented categories
         div = 0.0
         if used_cats:
             # words from same file region as already-used words get penalized
             region = cid // 100  # rough category by position
             div = -1.5 * used_cats.get(region, 0)
-        scores.append((T_x + B + H + F + A + Tr + div) / tau)
+        scores.append((T_x + B + H + F + A + div) / tau)
     probs = softmax_vec(scores)
     indexed = sorted(enumerate(probs), key=lambda x: -x[1])[:TOP_K]
     top = [(candidates[i], p) for i, p in indexed]
@@ -501,15 +533,25 @@ def dario_sample(meta, chambers, ctx, candidates, xf_logits, used_cats=None):
 # ═══════════════════════════════════════════════════════════════════
 
 def reassemble(meta, chambers, xf, leaf_words, cats):
-    leaf_ids = list(set(meta.w2i[w] for w in leaf_words if w in meta.w2i))
+    # MK-2: keep branch multiplicity — how many tree branches reached each leaf.
+    raw_ids = [meta.w2i[w] for w in leaf_words if w in meta.w2i]
+    leaf_ids = list(set(raw_ids))
     if not leaf_ids: return []
 
-    for lid in leaf_ids:
-        meta.destiny[lid] += 1.0
-
     from collections import Counter
-    for wid, cnt in Counter(leaf_ids).most_common(8):
-        meta.add_prophecy(wid, cnt * 0.5)
+    reach = Counter(raw_ids)  # MK-1/MK-2: how many tree branches reached each leaf
+
+    # MK-1: destiny = branch-reachability (was uniform +1.0 for every leaf, so A was
+    # a constant across candidates and softmax cancelled it). Now leaves reached by
+    # more branches pull harder. Accumulates across autopsies when the engine persists.
+    for lid, cnt in reach.items():
+        meta.destiny[lid] += float(cnt)
+
+    # MK-2: prophecy is owed to words several branches reached (cnt>1), not to an
+    # arbitrary top-8 of an already-deduped list (every count would be 1).
+    for wid, cnt in reach.most_common(8):
+        if cnt > 1:
+            meta.add_prophecy(wid, cnt * 0.5)
 
     kv = [{'k': [], 'v': []} for _ in range(N_LAYER)]
     chain = [random.choice(leaf_ids)]
@@ -610,26 +652,48 @@ def bar(v):
 # AUTOPSY — the full pipeline
 # ═══════════════════════════════════════════════════════════════════
 
+# MK-4: the morgue remembers its clients. Organs (vocab/embeds/ghost/meta/chambers)
+# are built once per body and persist across autopsies in one session, so destiny,
+# trauma, prophecy and co-occurrence ACCUMULATE instead of dying each REPL turn.
+# (File-level persistence across process runs is P-1, a later wave.)
+_ENGINE = {}
+
 def autopsy(prompt, vocab_path='microkarpathy.txt'):
-    # load the body
-    words, cats = load_vocab(vocab_path)
-    if not words:
-        print("ERROR: empty vocabulary. the morgue is closed.")
-        return
+    global _ENGINE
+    eng = _ENGINE.get(vocab_path)
+    if eng is None:
+        # load the body
+        words, cats = load_vocab(vocab_path)
+        if not words:
+            print("ERROR: empty vocabulary. the morgue is closed.")
+            return
+        # hash embeddings — no weights, just deterministic chaos
+        embeds = {w: hash_embed(w) for w in words}
+        # ghost transformer — real architecture, untrained (seeded once, here)
+        random.seed(42)
+        xf = GhostTransformer(len(words))
+        # metaweights — the data IS the model
+        meta = MetaWeights(words)
+        # kuramoto chambers — the nervous system
+        chambers = KuramotoChambers()
+        # MK-12: derive the corpus's own stop-words — most frequent tokens across
+        # multi-word entries (a fed book's the/and/של). Word-per-line vocab -> none.
+        from collections import Counter
+        tf, multiword = Counter(), 0
+        for entry in words:
+            parts = [p.strip('.,!?;:"\'-()[]') for p in entry.lower().split()]
+            if len(parts) > 1: multiword += 1
+            for tok in parts:
+                if len(tok) > 1: tf[tok] += 1
+        corpus_stops = (frozenset(w for w, c in tf.most_common(20) if c >= 3)
+                        if multiword > len(words) // 4 else frozenset())
+        eng = {'words': words, 'cats': cats, 'embeds': embeds, 'xf': xf,
+               'meta': meta, 'chambers': chambers, 'corpus_stops': corpus_stops}
+        _ENGINE[vocab_path] = eng
+    words, cats, embeds, xf, meta, chambers = (
+        eng['words'], eng['cats'], eng['embeds'],
+        eng['xf'], eng['meta'], eng['chambers'])
     vocab_set = set(words)
-
-    # hash embeddings — no weights, just deterministic chaos
-    embeds = {w: hash_embed(w) for w in words}
-
-    # ghost transformer — real architecture, untrained
-    random.seed(42)
-    xf = GhostTransformer(len(words))
-
-    # metaweights — the data IS the model
-    meta = MetaWeights(words)
-
-    # kuramoto chambers — the nervous system
-    chambers = KuramotoChambers()
 
     # ── HEADER ──────────────────────────────────────────────────
     print("  MICROKARPATHY — Prompt Autopsy Without Weights")
@@ -642,7 +706,7 @@ def autopsy(prompt, vocab_path='microkarpathy.txt'):
     print(f'  Subject: "{prompt}"')
     print("=" * 64)
 
-    core = dissect(prompt, vocab_set, words, embeds)
+    core = dissect(prompt, vocab_set, words, embeds, eng['corpus_stops'])
     print(f"\n  Core words: {' '.join(core)}")
     if not core:
         print("  Subject DOA. No core words survived dissection.")
@@ -660,7 +724,9 @@ def autopsy(prompt, vocab_path='microkarpathy.txt'):
     print(f"\n  Collected {len(unique)} unique leaves")
 
     # ── ACT II: REASSEMBLY (Dario Equation through transformer) ─
-    chain = reassemble(meta, chambers, xf, unique, cats)
+    # MK-2: pass the RAW leaves (with multiplicity) so prophecy can weigh
+    # words reached by several branches.
+    chain = reassemble(meta, chambers, xf, all_leaves, cats)
     corpse = [words[wid] for wid in chain]
 
     print(f"\n  \u2500\u2500 CORPSE \u2500\u2500\u2500\u2500\u2500\u2500\u2500"
