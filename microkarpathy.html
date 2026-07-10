@@ -128,6 +128,9 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   box-shadow:none; font-size:12px; padding:9px 12px; text-transform:lowercase;
 }
 #mode-btn.myc{ background:var(--fg); color:#000; }
+body.dragging::after{ content:"drop a .txt — the mycelium is hungry"; position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--fg);
+  background:rgba(0,255,65,.08); border:2px dashed var(--fg); z-index:50; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -135,8 +138,8 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 
 <div id="source" class="hidden">
   <div id="source-head">
-    <button id="src-back" title="back through your jumps">&lsaquo;</button>
-    <button id="src-fwd" title="forward">&rsaquo;</button>
+    <button id="src-back" title="previous branch of the tree">&lsaquo;</button>
+    <button id="src-fwd" title="next branch of the tree">&rsaquo;</button>
     <span id="src-title">source</span>
     <button id="src-close" title="close">&times;</button>
   </div>
@@ -1765,11 +1768,13 @@ const srcEl = document.getElementById('source');
 const srcBody = document.getElementById('source-body');
 const srcTitle = document.getElementById('src-title');
 const modeBtn = document.getElementById('mode-btn');
-let jumpStack = [], jumpAt = -1;
+let currentTree = [], branchAt = -1;   // the tree on the left (corpse or concordance) → walk it in the source pane
 
-fileEl.addEventListener('change', (ev) => {
-  const files = ev.target.files;
-  if(!files || !files.length) return;
+// feed .txt files — from the load button OR dragged onto the page. mycelium mode eats
+// them into the memory organ; autopsy mode makes the first one the corpse.
+function handleFiles(files){
+  files = [...files].filter(f => /\.(txt|md|markdown|text)$/i.test(f.name) || (f.type||"").startsWith('text'));
+  if(!files.length) return;
   if(mkMode === 'mycelium'){
     let done = 0, names = [];
     for(const file of files){
@@ -1795,7 +1800,16 @@ fileEl.addEventListener('change', (ev) => {
     };
     reader.readAsText(file);
   }
-  fileEl.value = "";   // allow re-feeding the same file
+}
+fileEl.addEventListener('change', (ev) => { handleFiles(ev.target.files); fileEl.value = ""; });
+// drag a .txt anywhere onto the page → eaten (mycelium) or dissected (autopsy)
+['dragover','dragenter'].forEach(t => document.addEventListener(t, (e) => {
+  e.preventDefault(); document.body.classList.add('dragging');
+}));
+document.addEventListener('dragleave', (e) => { if(!e.relatedTarget) document.body.classList.remove('dragging'); });
+document.addEventListener('drop', (e) => {
+  e.preventDefault(); document.body.classList.remove('dragging');
+  if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
 });
 
 modeBtn.addEventListener('click', () => {
@@ -1815,11 +1829,13 @@ function startMycelium(prompt){
   const r = myc.unfold(prompt, 9);
   appendLineNow(`\n<span class="bone">&gt; ${escHtml(prompt)}</span>\n`);
   appendLineNow(`  <span class="blood">── CORPSE (spliced from ${r.corpora.length}/${r.nCorpora} corpora by resonance) ──</span>\n\n`);
+  currentTree = r.fragments.map(f => ({src:f.source, off:f.offset, end:f.end}));   // walkable branches
+  branchAt = -1;
   let html = "  ";
-  for(const f of r.fragments){
+  r.fragments.forEach((f, i) => {
     const cut = escHtml(f.text.length > 90 ? f.text.slice(0,90) : f.text);
-    html += `<span class="frag" data-src="${escHtml(f.source)}" data-off="${f.offset}" data-end="${f.end}">${cut}<span class="tag"> [${escHtml(f.source)} r=${f.score}]</span></span>.  `;
-  }
+    html += `<span class="frag" data-idx="${i}" data-src="${escHtml(f.source)}" data-off="${f.offset}" data-end="${f.end}">${cut}<span class="tag"> [${escHtml(f.source)} r=${f.score}]</span></span>.  `;
+  });
   appendLineNow(html + "\n\n");
   appendLineNow(`  <span class="bone">click any fragment to open its book at the exact place it was robbed from.</span>\n\n`);
 }
@@ -1828,7 +1844,8 @@ function startMycelium(prompt){
 // opens the concordance of where it lives in the fed books.
 term.addEventListener('click', (ev) => {
   const frag = ev.target.closest ? ev.target.closest('.frag') : null;
-  if(frag){ openSource(frag.dataset.src, +frag.dataset.off, +frag.dataset.end, true); return; }
+  if(frag){ branchAt = frag.dataset.idx != null ? +frag.dataset.idx : -1;
+            openSource(frag.dataset.src, +frag.dataset.off, +frag.dataset.end); return; }
   const word = ev.target.closest ? ev.target.closest('.word') : null;
   if(word) concordance(word.dataset.w);
 });
@@ -1847,28 +1864,26 @@ function concordance(word){
     appendLineNow(`\n<span class="blood">  "${escHtml(word)}" has no home in the books — the mutation is a dream, not a memory.</span>\n`);
     return;
   }
+  currentTree = hits.map(e => ({src:e.source, off:e.offset, end:e.end}));   // the small tree → walkable
+  branchAt = -1;
   let html = `\n  <span class="blood">where "${escHtml(word)}" lives:</span>\n`;
   for(let i=0;i<hits.length;i++){
     const e = hits[i];
     const conn = i === hits.length-1 ? "  └─ " : "  ├─ ";
     const cut = escHtml(e.text.length > 84 ? e.text.slice(0,84) : e.text);
-    html += `${conn}<span class="frag" data-src="${escHtml(e.source)}" data-off="${e.offset}" data-end="${e.end}">${cut}<span class="tag"> [${escHtml(e.source)}]</span></span>\n`;
+    html += `${conn}<span class="frag" data-idx="${i}" data-src="${escHtml(e.source)}" data-off="${e.offset}" data-end="${e.end}">${cut}<span class="tag"> [${escHtml(e.source)}]</span></span>\n`;
   }
   appendLineNow(html + "\n");
 }
 
-function openSource(src, off, end, push){
+function openSource(src, off, end){
   const raw = myc.raw[src];
   if(raw == null){
     appendLineNow(`\n<span class="blood">[${escHtml(src)} is no longer in the mycelium — feed it again and unfold a fresh corpse]</span>\n`);
     return;
   }
-  if(push){
-    jumpStack = jumpStack.slice(0, jumpAt+1);
-    jumpStack.push({src, off, end});
-    jumpAt = jumpStack.length - 1;
-  }
-  srcTitle.textContent = `${src}  ·  char ${off} / ${raw.length}`;
+  const branch = (branchAt >= 0 && currentTree.length) ? `  ·  branch ${branchAt+1} / ${currentTree.length}` : "";
+  srcTitle.textContent = `${src}  ·  char ${off} / ${raw.length}${branch}`;
   srcBody.innerHTML = escHtml(raw.slice(0, off))
     + `<span class="hl" id="hl">${escHtml(raw.slice(off, end))}</span>`
     + escHtml(raw.slice(end));
@@ -1878,17 +1893,17 @@ function openSource(src, off, end, push){
 }
 
 document.getElementById('src-close').addEventListener('click', () => srcEl.classList.add('hidden'));
-document.getElementById('src-back').addEventListener('click', () => {
-  if(jumpAt > 0){ jumpAt--; const j = jumpStack[jumpAt]; openSource(j.src, j.off, j.end, false); }
+document.getElementById('src-back').addEventListener('click', () => {   // step up the tree
+  if(branchAt > 0){ branchAt--; const b = currentTree[branchAt]; openSource(b.src, b.off, b.end); }
 });
-document.getElementById('src-fwd').addEventListener('click', () => {
-  if(jumpAt < jumpStack.length-1){ jumpAt++; const j = jumpStack[jumpAt]; openSource(j.src, j.off, j.end, false); }
+document.getElementById('src-fwd').addEventListener('click', () => {    // step down the tree
+  if(branchAt < currentTree.length-1){ branchAt++; const b = currentTree[branchAt]; openSource(b.src, b.off, b.end); }
 });
 document.getElementById('myc-clear').addEventListener('click', () => {
   myc = new Mycelium();
   try { localStorage.removeItem('mycelium'); } catch(e){}
   srcEl.classList.add('hidden');
-  jumpStack = []; jumpAt = -1;
+  currentTree = []; branchAt = -1;
   appendLineNow(`\n<span class="bone">[mycelium cleared — the morgue forgets its books]</span>\n`);
   if(mkMode === 'mycelium') inputEl.placeholder = 'unfold a corpse from 0 book(s)…';
 });
