@@ -262,7 +262,7 @@ the connections in a book-tree aren't the noise of random hash vectors — they 
 
 ---
 
-### the mycelium (reference: `mycelium.py`)
+### the mycelium (`mycelium.py` is the reference sketch; the browser is the living engine)
 
 one corpse is a lonely thing. so feed it a whole morgue.
 
@@ -270,28 +270,39 @@ the mycelium is the memory organ — you throw books at it, all of them, any of 
 
 no LLM. no weights. no API. one word's resemblance to another is just the sum of its character-trigrams hashed into a vector, so "walking" lands next to "walked" and a hebrew root clusters with itself, in any tongue, with zero training. karpathy called this shape of thing an *llm-wiki*; we took the llm out and left the wiki to rot into something that maintains itself. dario injects knowledge politely, at sentence boundaries. the mycelium has no manners.
 
-feed it *Frankenstein*, *Dracula* and *Tropic of Cancer* — three books, 1.9 MB of other people's misery, eaten in 1.28 seconds — then ask it something none of them owns:
+feed it *Frankenstein*, *Dracula* and *Alice* — the three graves it ships with — then ask it something none of them owns:
 
 ```
->>> the monster wanders the dead city remembering paris and blood
+>>> the creature dreams of the sea the blood and the light of life
 
-  ── CORPSE (spliced from 3 corpora by resonance) ──
-  Finally he developed a paranoid streak.  This he backed up with arguments
-  regarding his complete recovery.  We were affectionate playfellows during
-  childhood, dear and valued friends.  I heard him fumbling in the kitchen for
-  the black soap.  I can feel the city palpitating, as if it were a heart.
-  The snows descended on my head, and I saw the print of his huge footstep.
+  ── CORPSE (spliced from 3/3 corpora by resonance) ──
+  The blood is the life!  It seemed as if the whole awful creature were simply
+  gorged with blood.  More bad dreams.  The light of that conflagration will
+  fade away; my ashes will be swept into the sea by the winds.  ...the fever of
+  my blood did not allow me to be visited by peaceful dreams.  Turn a somersault
+  in the sea!
 
-    [tropic_of_cancer   r=0.464]  Finally he developed a paranoid streak
-    [dracula            r=0.459]  This he backed up with arguments regarding...
-    [frankenstein       r=0.458]  We were affectionate playfellows during childhood
-    [tropic_of_cancer   r=0.440]  I can feel the city palpitating, as if it were a heart
-    [frankenstein       r=0.433]  The snows descended on my head, and I saw the print
+    [dracula        r=6.47]   The blood is the life!
+    [dracula        r=4.495]  ...the whole awful creature were simply gorged with blood
+    [dracula        r=4.183]  More bad dreams
+    [frankenstein   r=4.074]  ...my ashes will be swept into the sea by the winds
+    [frankenstein   r=3.45]   ...the fever of my blood did not allow me... peaceful dreams
+    [alice          r=3.129]  Turn a somersault in the sea!
 ```
 
-frankenstein's creature wanders miller's paris through dracula's sea-voyage, and every clause knows which grave it was robbed from — that little `[book r=…]` is the resonance score, how loudly that sentence answered your prompt. it drew on all three books at once. this is not collage, not quotation, not RAG: it is one body assembled from the resonant remains of several, and the more you feed it the deeper the mycelium goes. every autopsy makes the next one worse. *(this is a feature. we checked.)*
+three dead authors answer one prompt in a single breath — Dracula's blood, Frankenstein's sea, Alice's somersault — and every clause knows which grave it was robbed from. that `[book r=…]` is the resonance score, and it burns loudest exactly where your word and the corpse's word are the *same* one: the engine weighs a rare shared word (*somersault*, *conflagration*) far above a common one, so the corpse answers with the line that shares your fever, not the line that merely sounds like English. this is not collage, not quotation, not RAG: it is one body assembled from the resonant remains of several, and the more you feed it the deeper the mycelium goes. every autopsy makes the next one worse. *(this is a feature. we checked.)*
 
 there is a `texts/` folder. it is a mass grave. drop a book into it — no manifest, no list, no ceremony — and when you *serve* the page (`npx serve` or any static server, then open `microkarpathy.html` through it) the engine reads the whole grave, notes each corpse by the hash of its bones, and eats whatever is new. edit a book and it re-eats only that one; the rest lie undisturbed. it ships pre-loaded with three of the classics of human suffering. add your own and reload — it never asks permission. *(open the bare file with no server and the grave stays sealed; feed it by hand with `load .txt`.)*
+
+---
+
+### the corpse is clickable (open the page and see)
+
+on paper the morgue is a printout. in the browser (`microkarpathy.html`) it is a room you can walk. every clause in the corpse is a wound you can press: click it and the book it was robbed from tears open at the *exact character* where the sentence lived, the stolen line bleeding red in its own paragraph, the rest of the novel around it. the little `‹ ›` at the top of that wall walk you *along the branch* — fragment by fragment, grave by grave, `branch 3 / 9` — so you can follow the whole corpse back into its books without ever climbing out.
+
+and the mutations are clickable too. click any mutated word in an autopsy and it grows a *small tree*: the sentences where that word actually lives in the books you fed, each one a door into the text. the dissection is the dream; the small tree is where the dream touches down in something real. a word that never lived in the books tells you so — *"no home in the books"* — because the mutation was a hallucination and the morgue does not lie about its dead.
+
+and you never have to touch a button. drag a `.txt` straight onto the page and the mycelium eats it where it falls.
 
 ---
 
