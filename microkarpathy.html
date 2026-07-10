@@ -1725,6 +1725,7 @@ fileEl.addEventListener('change', (ev) => {
         if(done === files.length){
           myc.save();
           appendLineNow(`\n<span class="bone">[mycelium ate ${escHtml(names.join(', '))} — ${myc.corpora.length} corpora, ${myc.entries.length} fragments]</span>\n`);
+          inputEl.placeholder = `unfold a corpse from ${myc.corpora.length} book(s)…`;
         }
       };
       reader.readAsText(file);
@@ -1775,7 +1776,10 @@ term.addEventListener('click', (ev) => {
 
 function openSource(src, off, end, push){
   const raw = myc.raw[src];
-  if(raw == null) return;
+  if(raw == null){
+    appendLineNow(`\n<span class="blood">[${escHtml(src)} is no longer in the mycelium — feed it again and unfold a fresh corpse]</span>\n`);
+    return;
+  }
   if(push){
     jumpStack = jumpStack.slice(0, jumpAt+1);
     jumpStack.push({src, off, end});
