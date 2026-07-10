@@ -1303,14 +1303,6 @@ function embedNgram(word, n=3){
   _wordCache.set(word, v);
   return v;
 }
-function meanEmbed(tokens){
-  const vec = new Array(MYC_DIM).fill(0);
-  let n = 0;
-  for(const t of tokens){ const e = embedNgram(t); for(let i=0;i<MYC_DIM;i++) vec[i]+=e[i]; n++; }
-  if(n===0) return vec;
-  const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
-  return vec.map(x=>x/norm);
-}
 const MYC_STOPS = new Set(("the a an and or but of to in on at is are was were be been it its this that "+
   "these those i you he she we they me him her us them my your his our their as by for with from into "+
   "over under so not no do does did have has had will would can could there here then than when where "+
@@ -1342,7 +1334,7 @@ function mycHash(s){
   return h.toString(16);
 }
 class Mycelium {
-  constructor(){ this.entries=[]; this.freq={}; this.sources={}; this.edges={}; this.corpora=[]; this.raw={}; this.hashes={}; }
+  constructor(){ this.entries=[]; this.freq={}; this.sources={}; this.edges={}; this.corpora=[]; this.raw={}; this.hashes={}; this.df={}; }
   _edge(a,b,w){ if(a===b) return; const k = a<b ? a+"\t"+b : b+"\t"+a; this.edges[k]=(this.edges[k]||0)+w; }
   ingest(text, source){
     if(!this.corpora.includes(source)) this.corpora.push(source);
@@ -1351,11 +1343,11 @@ class Mycelium {
     for(const seg of mycSegment(text)){
       const toks = mycTokens(seg.text);
       if(toks.length < 2) continue;
-      this.entries.push({text:seg.text, source, offset:seg.offset, end:seg.end, emb:meanEmbed(toks), toks});
-      this._index(toks, source);
+      this.entries.push({text:seg.text, source, offset:seg.offset, end:seg.end, toks});
     }
+    // indexing + IDF-weighted embeddings are built once, in finalize(), so IDF is global
   }
-  _index(toks, source){   // fold one fragment's tokens into freq / sources / edges
+  _index(toks, source){   // fold one fragment's tokens into freq / sources / edges / df
     for(let i=0;i<toks.length;i++){
       const t = toks[i];
       this.freq[t] = (this.freq[t]||0)+1;
@@ -1363,20 +1355,44 @@ class Mycelium {
       if(i>0) this._edge(toks[i-1], t, 1.0);
     }
     const uniq = [...new Set(toks)];
+    for(const t of uniq) this.df[t] = (this.df[t]||0)+1;   // document frequency → IDF
     for(let i=0;i<uniq.length;i++) for(let j=i+1;j<Math.min(i+8,uniq.length);j++) this._edge(uniq[i],uniq[j],0.3);
   }
-  rebuildIndex(){   // recompute freq / sources / edges from the surviving entries
-    this.freq={}; this.sources={}; this.edges={};
+  rebuildIndex(){   // recompute freq / sources / edges / df from the surviving entries
+    this.freq={}; this.sources={}; this.edges={}; this.df={};
     for(const e of this.entries) this._index(e.toks, e.source);
   }
+  idf(t){ return Math.log((this.entries.length + 1) / ((this.df[t]||0) + 1)) + 1; }
+  embedField(toks){   // IDF-weighted mean char-ngram embedding — the FUZZY fallback: orders the
+    const vec = new Array(MYC_DIM).fill(0);   // no-overlap tail (OOV / other-script prompts) by word shape
+    let any = false;
+    for(const t of toks){
+      const w = this.idf(t), e = embedNgram(t);
+      for(let i=0;i<MYC_DIM;i++) vec[i] += w * e[i];
+      any = true;
+    }
+    if(!any) return vec;
+    const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+    return vec.map(x=>x/norm);
+  }
+  refreshEmbeddings(){ for(const e of this.entries) e.emb = this.embedField(e.toks); }
+  finalize(){ this.rebuildIndex(); this.refreshEmbeddings(); }   // df/edges, then IDF-weight every fragment
   dropSource(source){   // a changed book: forget its fragments, caller re-eats it fresh
     this.entries = this.entries.filter(e => e.source !== source);
     this.corpora = this.corpora.filter(c => c !== source);
     delete this.raw[source]; delete this.hashes[source];
     this.rebuildIndex();
   }
-  resonate(fieldEmb, k=8, perSourceCap=3){
-    const scored = this.entries.map(e => [cosineSim(fieldEmb, e.emb), e]).sort((a,b)=>b[0]-a[0]);
+  resonate(fieldEmb, ptoks, k=8, perSourceCap=3){
+    // hybrid resonance: TF-IDF overlap of SHARED words is the primary signal (keys on the
+    // telling word, cools the mush), + a small char-ngram cosine that orders the no-overlap tail.
+    const pset = new Set(ptoks), beta = 0.5;
+    const scored = this.entries.map(e => {
+      let ov = 0; const et = new Set(e.toks);
+      for(const t of pset) if(et.has(t)) ov += this.idf(t);
+      ov /= Math.sqrt(e.toks.length + 1);            // damp long fragments
+      return [ov + beta * cosineSim(fieldEmb, e.emb), e];
+    }).sort((a,b)=>b[0]-a[0]);
     const out=[], seen={};
     for(const [score,e] of scored){
       if((seen[e.source]||0) >= perSourceCap) continue;
@@ -1388,8 +1404,8 @@ class Mycelium {
   }
   unfold(prompt, k=9){
     const core = mycTokens(prompt);
-    const field = meanEmbed(core);
-    const res = this.resonate(field, k);
+    const field = this.embedField(core);
+    const res = this.resonate(field, core, k);
     const touched = new Set(res.map(r => r.entry.source));
     return { core,
       fragments: res.map(r => ({text:r.entry.text, source:r.entry.source, score:+r.score.toFixed(3),
@@ -1415,11 +1431,11 @@ class Mycelium {
         m.corpora = d.corpora || [];
         m.raw = d.raw || {};
         m.hashes = d.hashes || {};
-        m.entries = (d.entries||[]).map(e => {         // rehydrate the recomputable fields
+        m.entries = (d.entries||[]).map(e => {         // rehydrate; finalize() rebuilds df + IDF embeddings
           const toks = mycTokens(e.text);
-          return {text:e.text, source:e.source, offset:e.offset, end:e.end, toks, emb:meanEmbed(toks)};
+          return {text:e.text, source:e.source, offset:e.offset, end:e.end, toks};
         });
-        m.rebuildIndex();
+        m.finalize();
       }
     }
     return m;
@@ -1762,6 +1778,7 @@ fileEl.addEventListener('change', (ev) => {
         myc.ingest(String(e.target.result || ""), file.name);
         names.push(file.name); done++;
         if(done === files.length){
+          myc.finalize();
           myc.save();
           appendLineNow(`\n<span class="bone">[mycelium ate ${escHtml(names.join(', '))} — ${myc.corpora.length} corpora, ${myc.entries.length} fragments]</span>\n`);
           inputEl.placeholder = `unfold a corpse from ${myc.corpora.length} book(s)…`;
@@ -1917,6 +1934,7 @@ function mycListDir(body){
     } catch(e){ /* skip an unreadable file */ }
   }
   if(added || updated){
+    myc.finalize();
     myc.save();
     appendLineNow(`\n<span class="bone">[mycelium caught texts/ — ${added} new, ${updated} changed → ${myc.corpora.length} books, ${myc.entries.length} fragments. flip to mycelium and unfold.]</span>\n`);
     if(mkMode === 'mycelium') inputEl.placeholder = `unfold a corpse from ${myc.corpora.length} book(s)…`;
