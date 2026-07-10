@@ -291,6 +291,8 @@ feed it *Frankenstein*, *Dracula* and *Tropic of Cancer* — three books, 1.9 MB
 
 frankenstein's creature wanders miller's paris through dracula's sea-voyage, and every clause knows which grave it was robbed from — that little `[book r=…]` is the resonance score, how loudly that sentence answered your prompt. it drew on all three books at once. this is not collage, not quotation, not RAG: it is one body assembled from the resonant remains of several, and the more you feed it the deeper the mycelium goes. every autopsy makes the next one worse. *(this is a feature. we checked.)*
 
+there is a `texts/` folder. it is a mass grave. drop a book into it — no manifest, no list, no ceremony — and when you *serve* the page (`npx serve` or any static server, then open `microkarpathy.html` through it) the engine reads the whole grave, notes each corpse by the hash of its bones, and eats whatever is new. edit a book and it re-eats only that one; the rest lie undisturbed. it ships pre-loaded with three of the classics of human suffering. add your own and reload — it never asks permission. *(open the bare file with no server and the grave stays sealed; feed it by hand with `load .txt`.)*
+
 ---
 
 ### The Dario Equation

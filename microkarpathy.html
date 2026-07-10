@@ -1334,25 +1334,46 @@ function mycTokens(entry){
     .map(t => t.replace(/^[.,!?;:"'()\[\]{}—–\-*_]+|[.,!?;:"'()\[\]{}—–\-*_]+$/g, ""))
     .filter(t => t.length > 2 && !MYC_STOPS.has(t));
 }
+// content hash: FNV-1a 32-bit over the file text — cheap change-detection so the engine
+// re-eats a book only when its bytes actually change (folder-watch by content, no manifest).
+function mycHash(s){
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h.toString(16);
+}
 class Mycelium {
-  constructor(){ this.entries=[]; this.freq={}; this.sources={}; this.edges={}; this.corpora=[]; this.raw={}; }
+  constructor(){ this.entries=[]; this.freq={}; this.sources={}; this.edges={}; this.corpora=[]; this.raw={}; this.hashes={}; }
   _edge(a,b,w){ if(a===b) return; const k = a<b ? a+"\t"+b : b+"\t"+a; this.edges[k]=(this.edges[k]||0)+w; }
   ingest(text, source){
     if(!this.corpora.includes(source)) this.corpora.push(source);
-    this.raw[source] = text;   // keep the raw doc so a click can open it at the exact place
+    this.raw[source] = text;              // keep the raw doc so a click can open it at the exact place
+    this.hashes[source] = mycHash(text);  // remember its bytes → re-eat only when they change
     for(const seg of mycSegment(text)){
       const toks = mycTokens(seg.text);
       if(toks.length < 2) continue;
       this.entries.push({text:seg.text, source, offset:seg.offset, end:seg.end, emb:meanEmbed(toks), toks});
-      for(let i=0;i<toks.length;i++){
-        const t = toks[i];
-        this.freq[t] = (this.freq[t]||0)+1;
-        const s = new Set(this.sources[t]||[]); s.add(source); this.sources[t]=[...s].sort();
-        if(i>0) this._edge(toks[i-1], t, 1.0);
-      }
-      const uniq = [...new Set(toks)];
-      for(let i=0;i<uniq.length;i++) for(let j=i+1;j<Math.min(i+8,uniq.length);j++) this._edge(uniq[i],uniq[j],0.3);
+      this._index(toks, source);
     }
+  }
+  _index(toks, source){   // fold one fragment's tokens into freq / sources / edges
+    for(let i=0;i<toks.length;i++){
+      const t = toks[i];
+      this.freq[t] = (this.freq[t]||0)+1;
+      const s = new Set(this.sources[t]||[]); s.add(source); this.sources[t]=[...s].sort();
+      if(i>0) this._edge(toks[i-1], t, 1.0);
+    }
+    const uniq = [...new Set(toks)];
+    for(let i=0;i<uniq.length;i++) for(let j=i+1;j<Math.min(i+8,uniq.length);j++) this._edge(uniq[i],uniq[j],0.3);
+  }
+  rebuildIndex(){   // recompute freq / sources / edges from the surviving entries
+    this.freq={}; this.sources={}; this.edges={};
+    for(const e of this.entries) this._index(e.toks, e.source);
+  }
+  dropSource(source){   // a changed book: forget its fragments, caller re-eats it fresh
+    this.entries = this.entries.filter(e => e.source !== source);
+    this.corpora = this.corpora.filter(c => c !== source);
+    delete this.raw[source]; delete this.hashes[source];
+    this.rebuildIndex();
   }
   resonate(fieldEmb, k=8, perSourceCap=3){
     const scored = this.entries.map(e => [cosineSim(fieldEmb, e.emb), e]).sort((a,b)=>b[0]-a[0]);
@@ -1378,15 +1399,28 @@ class Mycelium {
   save(key="mycelium"){
     if(typeof localStorage === "undefined") return;
     try {
-      localStorage.setItem(key, JSON.stringify({entries:this.entries, freq:this.freq,
-        sources:this.sources, edges:this.edges, corpora:this.corpora, raw:this.raw}));
-    } catch(e) { /* quota — the mycelium lives in memory this session, best-effort persist */ }
+      // persist only the durable bones — emb / toks / freq / sources / edges are all rebuilt
+      // on load, keeping the blob small enough for localStorage (the derived store is ~30MB).
+      const lean = this.entries.map(e => ({text:e.text, source:e.source, offset:e.offset, end:e.end}));
+      localStorage.setItem(key, JSON.stringify({entries:lean, corpora:this.corpora,
+        raw:this.raw, hashes:this.hashes}));
+    } catch(e) { /* quota — the mycelium lives in memory this session; the texts/ folder re-feeds it */ }
   }
   static load(key="mycelium"){
     const m = new Mycelium();
     if(typeof localStorage !== "undefined"){
       const raw = localStorage.getItem(key);
-      if(raw){ Object.assign(m, JSON.parse(raw)); }
+      if(raw){
+        const d = JSON.parse(raw);
+        m.corpora = d.corpora || [];
+        m.raw = d.raw || {};
+        m.hashes = d.hashes || {};
+        m.entries = (d.entries||[]).map(e => {         // rehydrate the recomputable fields
+          const toks = mycTokens(e.text);
+          return {text:e.text, source:e.source, offset:e.offset, end:e.end, toks, emb:meanEmbed(toks)};
+        });
+        m.rebuildIndex();
+      }
     }
     return m;
   }
@@ -1842,27 +1876,51 @@ document.getElementById('myc-clear').addEventListener('click', () => {
   if(mkMode === 'mycelium') inputEl.placeholder = 'unfold a corpse from 0 book(s)…';
 });
 
-// auto-charge the mycelium from whatever lives in the texts/ folder — agnostic:
-// add a .txt there (and to texts/index.json) and it gets eaten on load. Needs the
-// page to be SERVED (fetch is blocked on file://; there it falls back to manual load).
+// auto-charge from the texts/ folder — NO manifest. The engine lists the folder off the
+// server's directory index and eats every text file, re-eating one only when its bytes
+// change (content hash). Drop a book in texts/ and reload — it's caught; edit one and it
+// re-eats just that book; the rest stay. Needs the page SERVED (fetch + dir-listing are
+// blocked on file://; there, feed books manually with load .txt).
+function mycListDir(body){
+  // a server's directory index may be JSON (["a.txt", ...]) or HTML (<a href="a.txt">) — accept both
+  const t = body.trim();
+  let names = [];
+  if(t[0] === '['){ try { const a = JSON.parse(t); if(Array.isArray(a)) names = a.map(String); } catch(e){} }
+  if(!names.length){
+    const re = /href\s*=\s*["']([^"'?#]+)["']/gi; let m;
+    while((m = re.exec(body))){
+      let h = m[1];
+      try { h = decodeURIComponent(h); } catch(e){}
+      if(h.endsWith('/') || h.startsWith('..') || h.includes('://')) continue;
+      names.push(h.split('/').pop());
+    }
+  }
+  const seen = new Set();
+  return names.filter(n => /\.(txt|md|markdown|text)$/i.test(n) && !seen.has(n) && seen.add(n));
+}
 (async () => {
-  if(myc.corpora.length) return;            // already carries books (persisted) — don't double-eat
-  try {
-    const idx = await fetch('texts/index.json');
-    if(!idx.ok) return;
-    const names = await idx.json();
-    for(const name of names){
-      try {
-        const r = await fetch('texts/' + encodeURIComponent(name));
-        if(r.ok) myc.ingest(await r.text(), name);
-      } catch(e){ /* skip a missing file */ }
-    }
-    if(myc.corpora.length){
-      myc.save();
-      appendLineNow(`\n<span class="bone">[mycelium auto-charged from texts/ — ${myc.corpora.length} books, ${myc.entries.length} fragments. flip to mycelium and unfold.]</span>\n`);
-      if(mkMode === 'mycelium') inputEl.placeholder = `unfold a corpse from ${myc.corpora.length} book(s)…`;
-    }
-  } catch(e){ /* file:// blocks fetch — feed books manually with load .txt */ }
+  let body;
+  try { const r = await fetch('texts/'); if(!r.ok) return; body = await r.text(); }
+  catch(e){ return; }                        // file:// or no directory index → feed books manually
+  const files = mycListDir(body);
+  if(!files.length) return;
+  let added = 0, updated = 0;
+  for(const name of files){
+    try {
+      const fr = await fetch('texts/' + encodeURIComponent(name));
+      if(!fr.ok) continue;
+      const text = await fr.text();
+      if(myc.hashes[name] === mycHash(text)) continue;         // unchanged — already eaten
+      if(myc.corpora.includes(name)){ myc.dropSource(name); updated++; }  // changed — forget & re-eat
+      else added++;
+      myc.ingest(text, name);
+    } catch(e){ /* skip an unreadable file */ }
+  }
+  if(added || updated){
+    myc.save();
+    appendLineNow(`\n<span class="bone">[mycelium caught texts/ — ${added} new, ${updated} changed → ${myc.corpora.length} books, ${myc.entries.length} fragments. flip to mycelium and unfold.]</span>\n`);
+    if(mkMode === 'mycelium') inputEl.placeholder = `unfold a corpse from ${myc.corpora.length} book(s)…`;
+  }
 })();
 
 inputEl.addEventListener('keydown', (e) => {
