@@ -262,6 +262,37 @@ the connections in a book-tree aren't the noise of random hash vectors — they 
 
 ---
 
+### the mycelium (reference: `mycelium.py`)
+
+one corpse is a lonely thing. so feed it a whole morgue.
+
+the mycelium is the memory organ — you throw books at it, all of them, any of them, and instead of forgetting each one the moment the autopsy ends it keeps the bones. every sentence you ever fed becomes a fingerprint in an underground graph, and when you hand it a prompt it stops dissecting *your* words and goes down into everything it has ever eaten to drag up whatever *resonates* — from whichever dead author happened to be lying nearby.
+
+no LLM. no weights. no API. one word's resemblance to another is just the sum of its character-trigrams hashed into a vector, so "walking" lands next to "walked" and a hebrew root clusters with itself, in any tongue, with zero training. karpathy called this shape of thing an *llm-wiki*; we took the llm out and left the wiki to rot into something that maintains itself. dario injects knowledge politely, at sentence boundaries. the mycelium has no manners.
+
+feed it *Frankenstein*, *Dracula* and *Tropic of Cancer* — three books, 1.9 MB of other people's misery, eaten in 1.28 seconds — then ask it something none of them owns:
+
+```
+>>> the monster wanders the dead city remembering paris and blood
+
+  ── CORPSE (spliced from 3 corpora by resonance) ──
+  Finally he developed a paranoid streak.  This he backed up with arguments
+  regarding his complete recovery.  We were affectionate playfellows during
+  childhood, dear and valued friends.  I heard him fumbling in the kitchen for
+  the black soap.  I can feel the city palpitating, as if it were a heart.
+  The snows descended on my head, and I saw the print of his huge footstep.
+
+    [tropic_of_cancer   r=0.464]  Finally he developed a paranoid streak
+    [dracula            r=0.459]  This he backed up with arguments regarding...
+    [frankenstein       r=0.458]  We were affectionate playfellows during childhood
+    [tropic_of_cancer   r=0.440]  I can feel the city palpitating, as if it were a heart
+    [frankenstein       r=0.433]  The snows descended on my head, and I saw the print
+```
+
+frankenstein's creature wanders miller's paris through dracula's sea-voyage, and every clause knows which grave it was robbed from — that little `[book r=…]` is the resonance score, how loudly that sentence answered your prompt. it drew on all three books at once. this is not collage, not quotation, not RAG: it is one body assembled from the resonant remains of several, and the more you feed it the deeper the mycelium goes. every autopsy makes the next one worse. *(this is a feature. we checked.)*
+
+---
+
 ### The Dario Equation
 
 named after Dario Amodei. the sampling equation that assembles corpses. appears across the [Arianna Method](https://github.com/ariannamethod) ecosystem — in [Q](https://github.com/ariannamethod/q) (resonant reasoning engine), [Sorokin](https://github.com/ariannamethod/sorokin) (literary necromancy), [dario.c](https://github.com/ariannamethod/dario.c) (the equation's standalone implementation), [Klaus](https://github.com/ariannamethod/klaus.c) (somatic engine), and [Brodsky](https://github.com/iamolegataeff/brodsky) (poetic organism). same equation. different organs.
