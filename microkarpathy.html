@@ -121,6 +121,8 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .frag{ color:var(--fg); cursor:pointer; border-bottom:1px dotted var(--muted); }
 .frag:hover{ color:#fff; background:rgba(0,255,65,.14); text-shadow:0 0 8px rgba(0,255,65,.6); }
 .frag .tag{ color:var(--muted); font-size:11px; }
+.word{ color:var(--bone); cursor:pointer; }
+.word:hover{ color:var(--fg); text-shadow:0 0 8px rgba(0,255,65,.6); border-bottom:1px dotted var(--muted); }
 #mode-btn{
   background:#000; color:var(--fg); border:1px solid var(--fg);
   box-shadow:none; font-size:12px; padding:9px 12px; text-transform:lowercase;
@@ -1690,7 +1692,10 @@ async function typeText(text, delay=10, cls=''){
 async function printTree(tree, pre="", last=true){
   const conn = last ? "└─ " : "├─ ";
   await typeText(pre + conn, 2);
-  await typeText(tree.w + "\n", 6, 'bone');
+  // MYCELIUM: each mutation word is clickable — it grounds the dream in the real
+  // corpus (concordance of sentences where the word actually lives in the books).
+  appendLineNow(`<span class="word" data-w="${escHtml(tree.w)}">${escHtml(tree.w)}</span>\n`);
+  await sleep(6);
   const childPre = pre + (last ? "   " : "│  ");
   for(let i=0;i<tree.ch.length;i++){
     await printTree(tree.ch[i], childPre, i === tree.ch.length-1);
@@ -1768,11 +1773,38 @@ function startMycelium(prompt){
   appendLineNow(`  <span class="bone">click any fragment to open its book at the exact place it was robbed from.</span>\n\n`);
 }
 
-// delegated click: any fragment opens its source at the exact offset
+// delegated click: a fragment opens its source at the exact offset; a mutation word
+// opens the concordance of where it lives in the fed books.
 term.addEventListener('click', (ev) => {
   const frag = ev.target.closest ? ev.target.closest('.frag') : null;
-  if(frag) openSource(frag.dataset.src, +frag.dataset.off, +frag.dataset.end, true);
+  if(frag){ openSource(frag.dataset.src, +frag.dataset.off, +frag.dataset.end, true); return; }
+  const word = ev.target.closest ? ev.target.closest('.word') : null;
+  if(word) concordance(word.dataset.w);
 });
+
+// autopsy-word-click: click a mutation word → the sentences where it actually lives in
+// the fed books, rendered as a small tree of clickable fragments (reuses openSource).
+function concordance(word){
+  const w = String(word).toLowerCase();
+  if(!myc.entries.length){
+    appendLineNow(`\n<span class="blood">  feed books (mycelium mode, or serve with texts/) to ground "${escHtml(word)}" in real sentences.</span>\n`);
+    return;
+  }
+  const hits = [];
+  for(const e of myc.entries){ if(e.toks.includes(w)){ hits.push(e); if(hits.length >= 6) break; } }
+  if(!hits.length){
+    appendLineNow(`\n<span class="blood">  "${escHtml(word)}" has no home in the books — the mutation is a dream, not a memory.</span>\n`);
+    return;
+  }
+  let html = `\n  <span class="blood">where "${escHtml(word)}" lives:</span>\n`;
+  for(let i=0;i<hits.length;i++){
+    const e = hits[i];
+    const conn = i === hits.length-1 ? "  └─ " : "  ├─ ";
+    const cut = escHtml(e.text.length > 84 ? e.text.slice(0,84) : e.text);
+    html += `${conn}<span class="frag" data-src="${escHtml(e.source)}" data-off="${e.offset}" data-end="${e.end}">${cut}<span class="tag"> [${escHtml(e.source)}]</span></span>\n`;
+  }
+  appendLineNow(html + "\n");
+}
 
 function openSource(src, off, end, push){
   const raw = myc.raw[src];
@@ -1809,6 +1841,29 @@ document.getElementById('myc-clear').addEventListener('click', () => {
   appendLineNow(`\n<span class="bone">[mycelium cleared — the morgue forgets its books]</span>\n`);
   if(mkMode === 'mycelium') inputEl.placeholder = 'unfold a corpse from 0 book(s)…';
 });
+
+// auto-charge the mycelium from whatever lives in the texts/ folder — agnostic:
+// add a .txt there (and to texts/index.json) and it gets eaten on load. Needs the
+// page to be SERVED (fetch is blocked on file://; there it falls back to manual load).
+(async () => {
+  if(myc.corpora.length) return;            // already carries books (persisted) — don't double-eat
+  try {
+    const idx = await fetch('texts/index.json');
+    if(!idx.ok) return;
+    const names = await idx.json();
+    for(const name of names){
+      try {
+        const r = await fetch('texts/' + encodeURIComponent(name));
+        if(r.ok) myc.ingest(await r.text(), name);
+      } catch(e){ /* skip a missing file */ }
+    }
+    if(myc.corpora.length){
+      myc.save();
+      appendLineNow(`\n<span class="bone">[mycelium auto-charged from texts/ — ${myc.corpora.length} books, ${myc.entries.length} fragments. flip to mycelium and unfold.]</span>\n`);
+      if(mkMode === 'mycelium') inputEl.placeholder = `unfold a corpse from ${myc.corpora.length} book(s)…`;
+    }
+  } catch(e){ /* file:// blocks fetch — feed books manually with load .txt */ }
+})();
 
 inputEl.addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){
