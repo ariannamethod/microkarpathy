@@ -74,10 +74,10 @@ button{
 }
 button:hover{background:#fff;color:var(--blood);border-color:var(--blood)}
 button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-#file-label{
+#file-label, #myc-clear{
   font-size:11px; color:var(--muted); cursor:pointer; user-select:none;
 }
-#file-label:hover{color:var(--fg)}
+#file-label:hover, #myc-clear:hover{color:var(--blood)}
 #file-input{display:none}
 .blood{color:var(--blood); text-shadow:0 0 8px rgba(255,0,60,.55)}
 .bone{color:var(--bone); text-shadow:0 0 5px rgba(170,170,170,.35)}
@@ -147,6 +147,7 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   <button id="btn">Dissect</button>
   <button id="mode-btn" title="toggle autopsy / mycelium">autopsy</button>
   <label id="file-label" for="file-input">load .txt</label>
+  <span id="myc-clear" title="empty the mycelium store">clear</span>
   <input id="file-input" type="file" accept=".txt" multiple />
 </div>
 
@@ -1780,7 +1781,7 @@ function openSource(src, off, end, push){
     jumpStack.push({src, off, end});
     jumpAt = jumpStack.length - 1;
   }
-  srcTitle.textContent = `${src}  ·  char ${off}`;
+  srcTitle.textContent = `${src}  ·  char ${off} / ${raw.length}`;
   srcBody.innerHTML = escHtml(raw.slice(0, off))
     + `<span class="hl" id="hl">${escHtml(raw.slice(off, end))}</span>`
     + escHtml(raw.slice(end));
@@ -1795,6 +1796,14 @@ document.getElementById('src-back').addEventListener('click', () => {
 });
 document.getElementById('src-fwd').addEventListener('click', () => {
   if(jumpAt < jumpStack.length-1){ jumpAt++; const j = jumpStack[jumpAt]; openSource(j.src, j.off, j.end, false); }
+});
+document.getElementById('myc-clear').addEventListener('click', () => {
+  myc = new Mycelium();
+  try { localStorage.removeItem('mycelium'); } catch(e){}
+  srcEl.classList.add('hidden');
+  jumpStack = []; jumpAt = -1;
+  appendLineNow(`\n<span class="bone">[mycelium cleared — the morgue forgets its books]</span>\n`);
+  if(mkMode === 'mycelium') inputEl.placeholder = 'unfold a corpse from 0 book(s)…';
 });
 
 inputEl.addEventListener('keydown', (e) => {
