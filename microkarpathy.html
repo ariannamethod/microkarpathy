@@ -91,16 +91,63 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 ::-webkit-scrollbar{width:8px}
 ::-webkit-scrollbar-track{background:#000}
 ::-webkit-scrollbar-thumb{background:var(--fg)}
+
+/* ── mycelium: source pane + clickable fragments ── */
+.hidden{display:none!important}
+#source{
+  position:fixed; top:0; right:0; bottom:56px; width:46%;
+  background:#020202; border-left:2px solid var(--fg);
+  z-index:20; display:flex; flex-direction:column;
+  box-shadow:-6px 0 20px rgba(0,255,65,.12);
+}
+#source-head{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px; border-bottom:1px solid var(--muted); background:#000;
+}
+#source-head button{
+  padding:2px 9px; font-size:13px; background:#000; color:var(--fg);
+  border:1px solid var(--muted); box-shadow:none;
+}
+#source-head button:hover{background:var(--fg); color:#000; border-color:var(--fg)}
+#src-title{flex:1; color:var(--bone); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#source-body{
+  flex:1; overflow:auto; padding:16px; white-space:pre-wrap;
+  line-height:1.5; font-size:13px; color:var(--bone);
+}
+#source-body .hl{
+  color:#fff; background:rgba(255,0,60,.28);
+  box-shadow:0 0 10px rgba(255,0,60,.5); border-radius:2px;
+}
+.frag{ color:var(--fg); cursor:pointer; border-bottom:1px dotted var(--muted); }
+.frag:hover{ color:#fff; background:rgba(0,255,65,.14); text-shadow:0 0 8px rgba(0,255,65,.6); }
+.frag .tag{ color:var(--muted); font-size:11px; }
+#mode-btn{
+  background:#000; color:var(--fg); border:1px solid var(--fg);
+  box-shadow:none; font-size:12px; padding:9px 12px; text-transform:lowercase;
+}
+#mode-btn.myc{ background:var(--fg); color:#000; }
 </style>
 </head>
 <body>
 <div id="console"><span class="cursor"></span></div>
+
+<div id="source" class="hidden">
+  <div id="source-head">
+    <button id="src-back" title="back through your jumps">&lsaquo;</button>
+    <button id="src-fwd" title="forward">&rsaquo;</button>
+    <span id="src-title">source</span>
+    <button id="src-close" title="close">&times;</button>
+  </div>
+  <div id="source-body"></div>
+</div>
+
 <div id="inputbar">
   <span>&gt;</span>
   <input id="prompt" type="text" autocomplete="off" spellcheck="false" placeholder="ready for educational autopsy..." />
   <button id="btn">Dissect</button>
+  <button id="mode-btn" title="toggle autopsy / mycelium">autopsy</button>
   <label id="file-label" for="file-input">load .txt</label>
-  <input id="file-input" type="file" accept=".txt" />
+  <input id="file-input" type="file" accept=".txt" multiple />
 </div>
 
 <script>
@@ -1220,6 +1267,129 @@ class KuramotoChambers {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// MYCELIUM — the memory organ (kk x llm-wiki, no LLM, no weights)
+// Character-n-gram hashing fills kk's empty embedder slot: word resemblance
+// in any script, zero training. Ingest many books -> a compounding graph;
+// unfold splices resonant fragments from all of them into one corpse.
+// DOM-free by design (node-verifiable); persistence guards on localStorage.
+// ═══════════════════════════════════════════════════════════════════
+const MYC_DIM = 64;
+const _gramCache = new Map();
+function fnvVec(s){
+  let v = _gramCache.get(s);
+  if(v) return v;
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619)>>>0; }
+  v = [];
+  for(let i=0;i<MYC_DIM;i++){ h ^= h>>>13; h = Math.imul(h,1597334677)>>>0; h ^= h>>>16; v.push((h&0xFFFF)/32768.0 - 1.0); }
+  _gramCache.set(s, v);
+  return v;
+}
+const _wordCache = new Map();
+function embedNgram(word, n=3){
+  let v = _wordCache.get(word);
+  if(v) return v;
+  const w = "^" + word + "$";
+  const grams = [];
+  for(let i=0;i<=w.length-n;i++) grams.push(w.slice(i,i+n));
+  if(grams.length===0) grams.push(w);
+  const vec = new Array(MYC_DIM).fill(0);
+  for(const g of grams){ const gv = fnvVec(g); for(let i=0;i<MYC_DIM;i++) vec[i]+=gv[i]; }
+  const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+  v = vec.map(x=>x/norm);
+  _wordCache.set(word, v);
+  return v;
+}
+function meanEmbed(tokens){
+  const vec = new Array(MYC_DIM).fill(0);
+  let n = 0;
+  for(const t of tokens){ const e = embedNgram(t); for(let i=0;i<MYC_DIM;i++) vec[i]+=e[i]; n++; }
+  if(n===0) return vec;
+  const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+  return vec.map(x=>x/norm);
+}
+const MYC_STOPS = new Set(("the a an and or but of to in on at is are was were be been it its this that "+
+  "these those i you he she we they me him her us them my your his our their as by for with from into "+
+  "over under so not no do does did have has had will would can could there here then than when where "+
+  "what which who all any some more most").split(/\s+/));
+// Segment the RAW text into sentence-ish entries, KEEPING each entry's char
+// offset in the source so a click can open the document at the exact place.
+function mycSegment(text){
+  const entries = [];
+  const re = /\S[^.!?]*[.!?]+|\S[^.!?]*$/g;
+  let m;
+  while((m = re.exec(text)) !== null){
+    const raw = m[0];
+    const norm = raw.split(/\s+/).join(" ").trim();
+    if(norm.length > 12) entries.push({ text: norm, offset: m.index, end: m.index + raw.length });
+    if(re.lastIndex === m.index) re.lastIndex++;   // guard against zero-width match
+  }
+  return entries;
+}
+function mycTokens(entry){
+  return entry.toLowerCase().split(/\s+/)
+    .map(t => t.replace(/^[.,!?;:"'()\[\]{}—–\-*_]+|[.,!?;:"'()\[\]{}—–\-*_]+$/g, ""))
+    .filter(t => t.length > 2 && !MYC_STOPS.has(t));
+}
+class Mycelium {
+  constructor(){ this.entries=[]; this.freq={}; this.sources={}; this.edges={}; this.corpora=[]; this.raw={}; }
+  _edge(a,b,w){ if(a===b) return; const k = a<b ? a+"\t"+b : b+"\t"+a; this.edges[k]=(this.edges[k]||0)+w; }
+  ingest(text, source){
+    if(!this.corpora.includes(source)) this.corpora.push(source);
+    this.raw[source] = text;   // keep the raw doc so a click can open it at the exact place
+    for(const seg of mycSegment(text)){
+      const toks = mycTokens(seg.text);
+      if(toks.length < 2) continue;
+      this.entries.push({text:seg.text, source, offset:seg.offset, end:seg.end, emb:meanEmbed(toks), toks});
+      for(let i=0;i<toks.length;i++){
+        const t = toks[i];
+        this.freq[t] = (this.freq[t]||0)+1;
+        const s = new Set(this.sources[t]||[]); s.add(source); this.sources[t]=[...s].sort();
+        if(i>0) this._edge(toks[i-1], t, 1.0);
+      }
+      const uniq = [...new Set(toks)];
+      for(let i=0;i<uniq.length;i++) for(let j=i+1;j<Math.min(i+8,uniq.length);j++) this._edge(uniq[i],uniq[j],0.3);
+    }
+  }
+  resonate(fieldEmb, k=8, perSourceCap=3){
+    const scored = this.entries.map(e => [cosineSim(fieldEmb, e.emb), e]).sort((a,b)=>b[0]-a[0]);
+    const out=[], seen={};
+    for(const [score,e] of scored){
+      if((seen[e.source]||0) >= perSourceCap) continue;
+      seen[e.source] = (seen[e.source]||0)+1;
+      out.push({score, entry:e});
+      if(out.length>=k) break;
+    }
+    return out;
+  }
+  unfold(prompt, k=9){
+    const core = mycTokens(prompt);
+    const field = meanEmbed(core);
+    const res = this.resonate(field, k);
+    const touched = new Set(res.map(r => r.entry.source));
+    return { core,
+      fragments: res.map(r => ({text:r.entry.text, source:r.entry.source, score:+r.score.toFixed(3),
+                                offset:r.entry.offset, end:r.entry.end})),
+      corpora: [...touched].sort(), nCorpora: this.corpora.length };
+  }
+  save(key="mycelium"){
+    if(typeof localStorage === "undefined") return;
+    try {
+      localStorage.setItem(key, JSON.stringify({entries:this.entries, freq:this.freq,
+        sources:this.sources, edges:this.edges, corpora:this.corpora, raw:this.raw}));
+    } catch(e) { /* quota — the mycelium lives in memory this session, best-effort persist */ }
+  }
+  static load(key="mycelium"){
+    const m = new Mycelium();
+    if(typeof localStorage !== "undefined"){
+      const raw = localStorage.getItem(key);
+      if(raw){ Object.assign(m, JSON.parse(raw)); }
+    }
+    return m;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // ENGINE
 // ═══════════════════════════════════════════════════════════════════
 class MicroKarpathy {
@@ -1532,15 +1702,99 @@ function appendLineNow(htmlLine){
   scrollBottom();
 }
 
+// ── mycelium mode: the memory organ + clickable source jumps ──
+let myc = Mycelium.load();
+let mkMode = 'autopsy';
+const srcEl = document.getElementById('source');
+const srcBody = document.getElementById('source-body');
+const srcTitle = document.getElementById('src-title');
+const modeBtn = document.getElementById('mode-btn');
+let jumpStack = [], jumpAt = -1;
+
 fileEl.addEventListener('change', (ev) => {
-  const file = ev.target.files && ev.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    engine = new MicroKarpathy(String(e.target.result || ""));
-    appendLineNow(`\n<span class="bone">[loaded ${engine.V} words from ${escHtml(file.name)}]</span>\n`);
-  };
-  reader.readAsText(file);
+  const files = ev.target.files;
+  if(!files || !files.length) return;
+  if(mkMode === 'mycelium'){
+    let done = 0, names = [];
+    for(const file of files){
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        myc.ingest(String(e.target.result || ""), file.name);
+        names.push(file.name); done++;
+        if(done === files.length){
+          myc.save();
+          appendLineNow(`\n<span class="bone">[mycelium ate ${escHtml(names.join(', '))} — ${myc.corpora.length} corpora, ${myc.entries.length} fragments]</span>\n`);
+        }
+      };
+      reader.readAsText(file);
+    }
+  } else {
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      engine = new MicroKarpathy(String(e.target.result || ""));
+      appendLineNow(`\n<span class="bone">[loaded ${engine.V} words from ${escHtml(file.name)}]</span>\n`);
+    };
+    reader.readAsText(file);
+  }
+  fileEl.value = "";   // allow re-feeding the same file
+});
+
+modeBtn.addEventListener('click', () => {
+  mkMode = (mkMode === 'autopsy') ? 'mycelium' : 'autopsy';
+  modeBtn.textContent = mkMode;
+  modeBtn.classList.toggle('myc', mkMode === 'mycelium');
+  inputEl.placeholder = mkMode === 'mycelium'
+    ? `unfold a corpse from ${myc.corpora.length} book(s)…`
+    : 'ready for educational autopsy...';
+});
+
+function startMycelium(prompt){
+  if(!myc.entries.length){
+    appendLineNow(`\n<span class="blood">the mycelium is empty. flip the mode button to mycelium and feed it .txt books first.</span>\n`);
+    return;
+  }
+  const r = myc.unfold(prompt, 9);
+  appendLineNow(`\n<span class="bone">&gt; ${escHtml(prompt)}</span>\n`);
+  appendLineNow(`  <span class="blood">── CORPSE (spliced from ${r.corpora.length}/${r.nCorpora} corpora by resonance) ──</span>\n\n`);
+  let html = "  ";
+  for(const f of r.fragments){
+    const cut = escHtml(f.text.length > 90 ? f.text.slice(0,90) : f.text);
+    html += `<span class="frag" data-src="${escHtml(f.source)}" data-off="${f.offset}" data-end="${f.end}">${cut}<span class="tag"> [${escHtml(f.source)} r=${f.score}]</span></span>.  `;
+  }
+  appendLineNow(html + "\n\n");
+  appendLineNow(`  <span class="bone">click any fragment to open its book at the exact place it was robbed from.</span>\n\n`);
+}
+
+// delegated click: any fragment opens its source at the exact offset
+term.addEventListener('click', (ev) => {
+  const frag = ev.target.closest ? ev.target.closest('.frag') : null;
+  if(frag) openSource(frag.dataset.src, +frag.dataset.off, +frag.dataset.end, true);
+});
+
+function openSource(src, off, end, push){
+  const raw = myc.raw[src];
+  if(raw == null) return;
+  if(push){
+    jumpStack = jumpStack.slice(0, jumpAt+1);
+    jumpStack.push({src, off, end});
+    jumpAt = jumpStack.length - 1;
+  }
+  srcTitle.textContent = `${src}  ·  char ${off}`;
+  srcBody.innerHTML = escHtml(raw.slice(0, off))
+    + `<span class="hl" id="hl">${escHtml(raw.slice(off, end))}</span>`
+    + escHtml(raw.slice(end));
+  srcEl.classList.remove('hidden');
+  const hl = document.getElementById('hl');
+  if(hl) hl.scrollIntoView({block:'center'});
+}
+
+document.getElementById('src-close').addEventListener('click', () => srcEl.classList.add('hidden'));
+document.getElementById('src-back').addEventListener('click', () => {
+  if(jumpAt > 0){ jumpAt--; const j = jumpStack[jumpAt]; openSource(j.src, j.off, j.end, false); }
+});
+document.getElementById('src-fwd').addEventListener('click', () => {
+  if(jumpAt < jumpStack.length-1){ jumpAt++; const j = jumpStack[jumpAt]; openSource(j.src, j.off, j.end, false); }
 });
 
 inputEl.addEventListener('keydown', (e) => {
@@ -1554,6 +1808,8 @@ btnEl.addEventListener('click', startAutopsy);
 async function startAutopsy(){
   const prompt = inputEl.value.trim();
   if(!prompt || typing) return;
+
+  if(mkMode === 'mycelium'){ inputEl.value = ""; startMycelium(prompt); return; }
 
   typing = true;
   inputEl.disabled = true;
